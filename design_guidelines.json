@@ -1,0 +1,127 @@
+{
+  "project_name": "NEXGEN EXECUTIVES OS",
+  "theme": "dark",
+  "archetype": "5 (Luxury)",
+  "vibe": "Expensive, cinematic, moody, authoritative, high-end corporate boardroom",
+  "global_rules": {
+    "direction": "RTL",
+    "language": "Arabic",
+    "spacing_philosophy": "Generous spacing for layout, dense 'Control Room' grids for data widgets. High precision.",
+    "anti_patterns": [
+      "No generic purple/teal gradients.",
+      "No playful, rounded shapes. Stick to sharp corners or max 8px (rounded-lg) for an executive feel.",
+      "Do not flip non-directional icons (like cameras, logos).",
+      "Do not center-align Arabic data text; default to right-alignment (text-right) naturally."
+    ]
+  },
+  "typography": {
+    "primary_font": "Tajawal",
+    "primary_font_usage": "Headings, titles, numbers, key metrics (text-2xl to text-5xl)",
+    "secondary_font": "Cairo",
+    "secondary_font_usage": "Body, table data, UI elements, labels (text-xs to text-lg)",
+    "rules": {
+      "headings": "Tight letter spacing (tracking-tight). Use font-light or font-black to break generic bold.",
+      "numbers": "Use tabular-nums for all KPIs, percentages, and chart axes.",
+      "hierarchy": "H1 max text-5xl, H2 text-3xl, small labels uppercase with tracking-wide."
+    },
+    "setup": "Import via Google Fonts: https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@300;400;500;700;900&display=swap"
+  },
+  "colors": {
+    "background": {
+      "base": "#0A0D14",
+      "surface": "#111622",
+      "surface_hover": "#1A2235",
+      "glass": "rgba(255, 255, 255, 0.03)"
+    },
+    "text": {
+      "primary": "#F8FAFC",
+      "secondary": "#94A3B8",
+      "muted": "#475569"
+    },
+    "brand": {
+      "primary": "#D4AF37",
+      "primary_hover": "#FDE047",
+      "accent": "#0F172A"
+    },
+    "rag_status": {
+      "red": "#E11D48",
+      "red_bg": "rgba(225, 29, 72, 0.15)",
+      "amber": "#F59E0B",
+      "amber_bg": "rgba(245, 158, 11, 0.15)",
+      "green": "#10B981",
+      "green_bg": "rgba(16, 185, 129, 0.15)"
+    },
+    "borders": "rgba(255, 255, 255, 0.08)"
+  },
+  "layout_and_spacing": {
+    "sidebar": "Right-side fixed layout (RTL). Dark surface, elegant 1px border on the left (border-l border-white/10).",
+    "dashboard_grid": "Use grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-6 for macro layout.",
+    "card_padding": "p-6",
+    "border_radius": "rounded-lg (8px max)",
+    "alignment": "Mobile-first, right-to-left optical alignment. Icons on the right, text on the left in list items."
+  },
+  "components": {
+    "cards": {
+      "style": "Crystal Glass & Grid Borders",
+      "classes": "bg-[#111622]/80 backdrop-blur-xl border border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] hover:border-white/10 transition-colors"
+    },
+    "buttons": {
+      "primary": "bg-[#D4AF37] text-black hover:bg-[#FDE047] transition-all font-bold shadow-lg shadow-yellow-900/20",
+      "secondary": "bg-transparent border border-white/10 text-white hover:bg-white/5",
+      "ghost": "hover:bg-white/5 text-slate-300 hover:text-white"
+    },
+    "tables": {
+      "container": "w-full text-right border-collapse",
+      "header": "text-right text-slate-400 text-xs font-bold border-b border-white/10 pb-3 uppercase",
+      "row": "border-b border-white/5 hover:bg-white/5 transition-colors"
+    },
+    "charts": {
+      "library": "recharts",
+      "styling": "Dark mode tooltips (bg-[#111622] border-white/10 text-white). Grid lines at strokeOpacity={0.05}. Axis ticks in #94A3B8. Bright glowing stroke lines for Data/RAG."
+    },
+    "status_badges": {
+      "red": "bg-red-500/15 text-red-400 border border-red-500/20 px-2 py-1 rounded-md text-xs font-bold",
+      "amber": "bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-1 rounded-md text-xs font-bold",
+      "green": "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded-md text-xs font-bold"
+    },
+    "icons": {
+      "library": "lucide-react",
+      "rules": "Must flip directional icons (arrows, chevrons) for RTL using standard logic or 'rtl:rotate-180'."
+    }
+  },
+  "media": {
+    "login_background": {
+      "url": "https://images.unsplash.com/photo-1710438399422-2fca27686bcd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGVsZWdhbnQlMjBkYXJrJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3ODEwMDA2NDh8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Elegant abstract dark green/black background for the luxury login portal."
+    },
+    "corporate_building": {
+      "url": "https://images.unsplash.com/photo-1624213012413-fda54df1810f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBjb3Jwb3JhdGUlMjBvZmZpY2UlMjBidWlsZGluZ3xlbnwwfHx8fDE3ODEwMDA2NDh8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Modern corporate building, useful for company overview or headers."
+    },
+    "avatars": [
+      {
+        "role": "CEO",
+        "url": "https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMGV4ZWN1dGl2ZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc4MTAwMDY0OHww&ixlib=rb-4.1.0&q=85"
+      },
+      {
+        "role": "VP Development",
+        "url": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwyfHxidXNpbmVzcyUyMGV4ZWN1dGl2ZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc4MTAwMDY0OHww&ixlib=rb-4.1.0&q=85"
+      },
+      {
+        "role": "VP Investment",
+        "url": "https://images.unsplash.com/photo-1718209881007-c0ecdfc00f9d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwzfHxidXNpbmVzcyUyMGV4ZWN1dGl2ZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc4MTAwMDY0OHww&ixlib=rb-4.1.0&q=85"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Ensure <html dir='rtl' lang='ar'> is set globally in index.html.",
+    "Add 'font-family: Tajawal, sans-serif' and 'font-family: Cairo, sans-serif' in your CSS to map to Tailwind classes (e.g., font-sans and font-heading).",
+    "Replace left/right logical margins/paddings with start/end classes (e.g. ms-4, pe-6) or rely on RTL setup so the layout naturally aligns.",
+    "The Login Portal MUST feel exclusive. Use `login_background` as a full-bleed cover image with a glassmorphism (backdrop-blur-xl, bg-[#111622]/60) login card overlaid.",
+    "In the Executive Dashboard, heavily feature RAG (Red/Amber/Green) statuses on project progress and KPI cards using the defined `rag_status` colors.",
+    "For Recharts, ensure you pass custom tooltips and configure strokes/fills to stand out against the `#0A0D14` background.",
+    "All interactive elements MUST have `data-testid` attributes (e.g., data-testid='login-submit-btn', data-testid='sidebar-projects-link').",
+    "Customize Shadcn UI to remove default borders and shadows, replacing them with the `cards.classes` styles defined here.",
+    "Use Javascript (.js/.jsx) for all implementation, NOT Typescript."
+  ]
+}
