@@ -641,7 +641,7 @@ async def delete_event(eid: str, user=Depends(get_current_user)):
 
 
 
-def _call_gemini(prompt: str, system: str = "You are an AI Chief of Staff for enterprise executives.") -> Optional[str]:
+def _call_gemini(prompt: str, system: str = "You are the AI-powered CEO Office for enterprise executives.") -> Optional[str]:
     """Contest-compliant Gemini integration.
     Uses Google Gemini API when GEMINI_API_KEY or GOOGLE_API_KEY is configured; otherwise returns None.
     No non-Google AI services are used.
@@ -726,7 +726,7 @@ async def daily_executive_report(user=Depends(get_current_user)):
         ai_summary = gemini_summary
     else:
         ai_summary = (
-            f"AI Chief of Staff brief: {len(critical)} critical projects, {len(overdue)} overdue tasks, "
+            f"CEO Office brief: {len(critical)} critical projects, {len(overdue)} overdue tasks, "
             f"and {len(pending_reqs)} pending meeting requests require executive attention today. "
             "Recommended sequence: review critical risks, convert pending requests into decisions, and assign owners for delayed tasks."
         )
@@ -905,7 +905,7 @@ async def chief_of_staff(user=Depends(get_current_user)):
 # ============== AI ORCHESTRATION LAYER ==============
 def _agent_catalog() -> List[dict]:
     return [
-        {"id": "chief_of_staff", "name": "Chief of Staff Agent", "status": "Active", "tone": "emerald", "role": "Tracks executive priorities, decisions, escalations, and next-best actions.", "last_action": "Reviewed executive attention queue", "recommendations": 7, "route": "/daily-report"},
+        {"id": "chief_of_staff", "name": "CEO Office", "status": "Active", "tone": "emerald", "role": "Tracks executive priorities, decisions, escalations, and next-best actions.", "last_action": "Reviewed executive attention queue", "recommendations": 7, "route": "/daily-report"},
         {"id": "project_intelligence", "name": "Project Intelligence Agent", "status": "Monitoring", "tone": "emerald", "role": "Connects projects, tasks, risks, documents, progress, and delivery signals.", "last_action": "Scanned active projects for blockers", "recommendations": 5, "route": "/projects"},
         {"id": "meeting_intelligence", "name": "Meeting Intelligence Agent", "status": "Monitoring", "tone": "emerald", "role": "Converts meetings and requests into decisions, minutes, tasks, and follow-ups.", "last_action": "Checked pending meeting requests", "recommendations": 3, "route": "/meetings"},
         {"id": "risk_monitoring", "name": "Risk Monitoring Agent", "status": "Needs Attention", "tone": "amber", "role": "Detects delays, red indicators, critical tasks, and decision latency.", "last_action": "Detected items requiring executive review", "recommendations": 4, "route": "/dashboard"},
@@ -951,10 +951,10 @@ async def ai_agents(user=Depends(get_current_user)):
     for d in recent_docs:
         activity.append({"agent": "Document Intelligence Agent", "time": d.get("created_at"), "action": f"Processed {d.get('document_title', 'document')} and generated routing recommendations."})
     for n in recent_notifications:
-        activity.append({"agent": "Chief of Staff Agent", "time": n.get("created_at"), "action": n.get("title", "Notification reviewed")})
+        activity.append({"agent": "CEO Office", "time": n.get("created_at"), "action": n.get("title", "Notification reviewed")})
     if not activity:
         activity = [
-            {"agent": "Chief of Staff Agent", "time": now_iso(), "action": "Workspace monitored and ready for executive commands."},
+            {"agent": "CEO Office", "time": now_iso(), "action": "Workspace monitored and ready for executive commands."},
             {"agent": "Risk Monitoring Agent", "time": now_iso(), "action": "Risk radar standing by for project and task signals."},
         ]
     return {"agents": agents, "activity": activity[:12], "generated_at": now_iso()}
@@ -1132,7 +1132,7 @@ async def ai_command(payload: CommandInput, user=Depends(get_current_user)):
             "action": "Generate executive brief",
             "route": "/daily-report",
             "message": (
-                "Preparing AI Chief of Staff executive briefing."
+                "Preparing CEO Office executive briefing."
             )
         }
 

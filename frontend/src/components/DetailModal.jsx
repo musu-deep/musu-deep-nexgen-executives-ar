@@ -168,7 +168,7 @@ export default function DetailModal({
 
         {brief && (
           <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/[0.04] p-5">
-            <div className="text-[10px] tracking-[0.12em] text-yellow-400 mb-2">مخرجات رئيس الديوان الذكي</div>
+            <div className="text-[10px] tracking-[0.12em] text-yellow-400 mb-2">مخرجات مكتب الرئيس التنفيذي</div>
             <h3 className="font-heading text-xl font-bold mb-3">{translate(brief.title)}</h3>
 
             <BriefList title="الملخص التنفيذي" items={brief.executive_summary} />

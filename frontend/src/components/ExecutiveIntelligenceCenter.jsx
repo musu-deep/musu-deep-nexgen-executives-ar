@@ -24,7 +24,7 @@ export default function ExecutiveIntelligenceCenter({ onSelectRisk }) {
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <div className="text-xs tracking-[0.12em] text-yellow-500/80">مركز الذكاء التنفيذي</div>
-            <h3 className="font-heading text-2xl font-black mt-1 flex items-center gap-2"><Brain className="text-yellow-500"/> رئيس الديوان الذكي</h3>
+            <h3 className="font-heading text-2xl font-black mt-1 flex items-center gap-2"><Brain className="text-yellow-500"/> مكتب الرئيس التنفيذي</h3>
             <p className="text-sm text-slate-500 mt-1">طبقة ذكاء للقرارات والمخاطر والمتابعة، مهيأة لـGemini.</p>
           </div>
           <span className="px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 text-[10px] tracking-wider">مباشر</span>

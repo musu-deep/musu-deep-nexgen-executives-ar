@@ -44,7 +44,7 @@ export default function AppLayout() {
           <div className="flex items-center justify-center bg-black/40 rounded-lg p-3 border border-white/5">
             <img src={NEXGEN_LOGO} alt="NEXGEN EXECUTIVES" className="h-14 w-auto object-contain" />
           </div>
-          <div className="mt-3 text-center text-[11px] tracking-[0.12em] text-slate-500">رئيس الديوان الذكي</div>
+          <div className="mt-3 text-center text-[11px] tracking-[0.12em] text-slate-500">مكتب الرئيس التنفيذي</div>
         </div>
 
         <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">

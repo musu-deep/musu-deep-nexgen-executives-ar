@@ -24,7 +24,7 @@ export default function AIWorkforceStatus() {
   }, []);
 
   const agents = data?.agents || [
-    { name: "وكيل رئيس الديوان", tone: "emerald", status: "نشط" },
+    { name: "مكتب الرئيس التنفيذي", tone: "emerald", status: "نشط" },
     { name: "وكيل ذكاء المشروعات", tone: "emerald", status: "قيد المراقبة" },
     { name: "وكيل ذكاء الاجتماعات", tone: "emerald", status: "قيد المراقبة" },
     { name: "وكيل مراقبة المخاطر", tone: "amber", status: "يحتاج إلى انتباه" },
