@@ -1,12 +1,15 @@
 {
   "name": "nexgen-executives-ar",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
-    "dev": "npm --prefix frontend run dev",
+    "dev": "python scripts/dev.py",
+    "dev:frontend": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
     "preview": "npm --prefix frontend run preview",
     "install:frontend": "npm --prefix frontend install --legacy-peer-deps",
-    "start:backend": "uvicorn backend.arabic_server:app --host 0.0.0.0 --port 8001 --reload"
+    "install:backend": "python -m pip install -r backend/requirements.txt",
+    "setup": "npm run install:frontend && npm run install:backend",
+    "start:backend": "python -m uvicorn backend.arabic_server:app --host 0.0.0.0 --port 8001 --reload"
   }
 }
