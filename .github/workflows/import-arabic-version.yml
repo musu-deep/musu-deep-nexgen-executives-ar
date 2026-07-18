@@ -38,8 +38,7 @@ jobs:
           rsync -a --delete \
             --exclude='.git' \
             --exclude='_arabic_source' \
-            --exclude='.github/workflows/import-arabic-version.yml' \
-            --exclude='.github/workflows/export-arabic-repository.yml' \
+            --exclude='.github/workflows/' \
             _arabic_source/ ./
           rm -rf _arabic_source
 
