@@ -16,18 +16,15 @@ NEXGEN EXECUTIVES منصة تشغيل تنفيذية مدعومة بالذكاء
 - رسائل النظام والتنبيهات والنوافذ التفاعلية.
 - مخرجات رئيس الديوان الذكي والموجز التنفيذي ورادار المخاطر.
 - أوامر ومخرجات Gemini باللغة العربية.
-- الباكند العربي ومسار التشغيل والنشر المستقل عن المستودع الأصلي.
 
 ---
 
-## المستودع المستقل
+## استنساخ المستودع
 
 ```bash
 git clone https://github.com/musu-deep/musu-deep-nexgen-executives-ar.git
 cd musu-deep-nexgen-executives-ar
 ```
-
-الفرع الرئيسي المعتمد هو `main`، وتعمل اختبارات البناء والتحقق آليًا عبر GitHub Actions عند كل تحديث أو طلب مراجعة.
 
 ---
 
@@ -88,39 +85,76 @@ cd musu-deep-nexgen-executives-ar
 
 ## التشغيل المحلي
 
-### 1. تثبيت الواجهة
+### 1. تثبيت الاعتماديات
 
 ```bash
-npm run install:frontend
+npm run setup
 ```
 
-### 2. تشغيل الباكند العربي
+### 2. تجهيز قاعدة البيانات
 
-أنشئ ملف `backend/.env` بالاعتماد على `backend/.env.example`، ثم نفّذ:
-
-```bash
-python -m pip install -r backend/requirements.txt
-npm run start:backend
-```
-
-يعمل الباكند افتراضيًا على:
+يستخدم المشروع MongoDB على العنوان الافتراضي:
 
 ```text
-http://localhost:8001
+mongodb://localhost:27017
 ```
 
-### 3. تشغيل الواجهة
+شغّل خدمة MongoDB المحلية، أو ضع رابط MongoDB Atlas داخل `backend/.env` في المتغير `MONGO_URL`.
 
-في نافذة طرفية أخرى:
+### 3. تشغيل النظام كاملًا
 
 ```bash
 npm run dev
 ```
 
-ثم افتح:
+يشغّل هذا الأمر تلقائيًا:
+
+- الواجهة على `http://localhost:5173`.
+- الباكند العربي على `http://localhost:8001`.
+- إنشاء `backend/.env` من ملف المثال عند عدم وجوده.
+- التحقق من اتصال MongoDB قبل تشغيل النظام.
+
+لإيقاف الواجهة والباكند معًا اضغط `Ctrl+C`.
+
+### تشغيل كل جزء منفردًا
+
+```bash
+npm run start:backend
+npm run dev:frontend
+```
+
+---
+
+## معالجة خطأ ERR_CONNECTION_REFUSED
+
+ظهور الخطأ التالي:
 
 ```text
-http://localhost:5173
+localhost:8001/api/... net::ERR_CONNECTION_REFUSED
+```
+
+يعني أن الواجهة تعمل بينما الباكند غير شغال. نفّذ من مجلد المشروع:
+
+```bash
+npm run dev
+```
+
+وفي حال ظهور رسالة أن MongoDB غير متاحة، افتح PowerShell بصفة مسؤول ثم نفّذ:
+
+```powershell
+Start-Service MongoDB
+```
+
+ثم أعد تشغيل:
+
+```bash
+npm run dev
+```
+
+يمكن فحص الباكند مباشرة عبر:
+
+```text
+http://localhost:8001/api/
 ```
 
 ---
@@ -146,8 +180,6 @@ GEMINI_MODEL=gemini-2.5-flash
 VITE_BACKEND_URL=http://localhost:8001
 ```
 
-عند عدم تحديد المتغير، تتصل الواجهة افتراضيًا بالباكند المحلي على المنفذ `8001`.
-
 ---
 
 ## النشر
@@ -161,6 +193,8 @@ VITE_BACKEND_URL=http://localhost:8001
 ```env
 VITE_BACKEND_URL=https://your-backend-domain.com
 ```
+
+> لا تستخدم `localhost:8001` في Vercel؛ يجب نشر الباكند على Render أو خدمة Python أخرى ووضع رابطه العام في `VITE_BACKEND_URL`.
 
 ### Render أو خادم Python — الباكند
 
