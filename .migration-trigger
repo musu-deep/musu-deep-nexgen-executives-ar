@@ -1,1 +1,1 @@
-Retry complete Arabic repository import after excluding self-modifying workflow files.
+Trigger standalone Arabic edition CI validation after complete repository import.
