@@ -1,1 +1,0 @@
-Apply the approved Arabic terminology: مكتب الرئيس التنفيذي.
