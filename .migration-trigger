@@ -1,1 +1,1 @@
-Capture standalone Arabic edition build diagnostics for final validation.
+Trigger force-add migration so ignored source paths are committed into the standalone repository.
