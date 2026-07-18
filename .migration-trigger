@@ -1,1 +1,1 @@
-Trigger final standalone Arabic edition validation after all ignored source paths were committed.
+Run final CI validation after removing migration workflow and decoupling the Arabic edition.
