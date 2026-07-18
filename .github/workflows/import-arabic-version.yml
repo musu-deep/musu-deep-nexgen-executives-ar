@@ -1,0 +1,53 @@
+name: Import Complete Arabic Edition
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/import-arabic-version.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Checkout Arabic source branch
+        uses: actions/checkout@v4
+        with:
+          repository: musu-deep/nexgen-executives
+          ref: arabic-full-version
+          path: _arabic_source
+          persist-credentials: false
+
+      - name: Replace target with complete Arabic edition
+        shell: bash
+        run: |
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='_arabic_source' \
+            --exclude='.github/workflows/import-arabic-version.yml' \
+            --exclude='.github/workflows/export-arabic-repository.yml' \
+            _arabic_source/ ./
+          rm -rf _arabic_source
+
+      - name: Commit imported Arabic edition
+        shell: bash
+        run: |
+          git config user.name "NEXGEN Arabic Migration"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No migration changes detected."
+            exit 0
+          fi
+          git commit -m "Import complete Arabic NEXGEN EXECUTIVES edition"
+          git push origin HEAD:main
