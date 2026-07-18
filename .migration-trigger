@@ -1,1 +1,1 @@
-Trigger force-add migration so ignored source paths are committed into the standalone repository.
+Trigger final standalone Arabic edition validation after all ignored source paths were committed.
