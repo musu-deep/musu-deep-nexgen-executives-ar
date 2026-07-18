@@ -1,0 +1,135 @@
+name: Rename Executive Office Terminology
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/rename-ceo-office.trigger
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Replace obsolete terminology
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+          text_extensions = {'.js', '.jsx', '.ts', '.tsx', '.py', '.md', '.json', '.html', '.css'}
+          arabic_replacements = [
+              ('مخرجات رئيس الديوان الذكي', 'مخرجات مكتب الرئيس التنفيذي'),
+              ('موجز رئيس الديوان الذكي', 'موجز مكتب الرئيس التنفيذي'),
+              ('رئيس الديوان الذكي', 'مكتب الرئيس التنفيذي'),
+              ('وكيل رئيس الديوان', 'مكتب الرئيس التنفيذي'),
+              ('وكيل الديوان', 'مكتب الرئيس التنفيذي'),
+          ]
+
+          changed = []
+          for path in root.rglob('*'):
+              if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_extensions:
+                  continue
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              updated = text
+              for old, new in arabic_replacements:
+                  updated = updated.replace(old, new)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+                  changed.append(str(path))
+
+          backend_path = Path('backend/arak_extensions.py')
+          backend = backend_path.read_text(encoding='utf-8')
+          backend_replacements = [
+              ('You are an AI Chief of Staff for enterprise executives.', 'You are the AI-powered CEO Office for enterprise executives.'),
+              ('AI Chief of Staff brief:', 'CEO Office brief:'),
+              ('"name": "Chief of Staff Agent"', '"name": "CEO Office"'),
+              ('"agent": "Chief of Staff Agent"', '"agent": "CEO Office"'),
+              ('Preparing AI Chief of Staff executive briefing.', 'Preparing CEO Office executive briefing.'),
+          ]
+          updated_backend = backend
+          for old, new in backend_replacements:
+              updated_backend = updated_backend.replace(old, new)
+          if updated_backend != backend:
+              backend_path.write_text(updated_backend, encoding='utf-8')
+              changed.append(str(backend_path))
+
+          ar_path = Path('frontend/src/i18n/ar.js')
+          ar = ar_path.read_text(encoding='utf-8')
+          if '"CEO Office": "مكتب الرئيس التنفيذي",' not in ar:
+              ar = ar.replace(
+                  '"AI Chief of Staff": "مكتب الرئيس التنفيذي",',
+                  '"AI Chief of Staff": "مكتب الرئيس التنفيذي",\n  "CEO Office": "مكتب الرئيس التنفيذي",'
+              )
+          if '"CEO Office Agent": "مكتب الرئيس التنفيذي",' not in ar:
+              ar = ar.replace(
+                  '"Chief of Staff Agent": "مكتب الرئيس التنفيذي",',
+                  '"Chief of Staff Agent": "مكتب الرئيس التنفيذي",\n  "CEO Office Agent": "مكتب الرئيس التنفيذي",'
+              )
+          if '"Preparing CEO Office executive briefing.":' not in ar:
+              ar = ar.replace(
+                  '"Preparing AI Chief of Staff executive briefing.": "جارٍ إعداد الإحاطة التنفيذية بواسطة مكتب الرئيس التنفيذي.",',
+                  '"Preparing AI Chief of Staff executive briefing.": "جارٍ إعداد الإحاطة التنفيذية بواسطة مكتب الرئيس التنفيذي.",\n  "Preparing CEO Office executive briefing.": "جارٍ إعداد الإحاطة التنفيذية بواسطة مكتب الرئيس التنفيذي.",'
+              )
+          ar_path.write_text(ar, encoding='utf-8')
+
+          extra_path = Path('frontend/src/i18n/ar-extra.js')
+          extra = extra_path.read_text(encoding='utf-8')
+          if '"CEO Office Output": "مخرجات مكتب الرئيس التنفيذي",' not in extra:
+              extra = extra.replace(
+                  '"AI Chief of Staff Output": "مخرجات مكتب الرئيس التنفيذي",',
+                  '"AI Chief of Staff Output": "مخرجات مكتب الرئيس التنفيذي",\n  "CEO Office Output": "مخرجات مكتب الرئيس التنفيذي",'
+              )
+          extra_path.write_text(extra, encoding='utf-8')
+
+          server_path = Path('backend/arabic_server.py')
+          server = server_path.read_text(encoding='utf-8')
+          ceo_mapping = '    "CEO Office": ("مكتب الرئيس التنفيذي", "يتابع الأولويات والقرارات والتصعيدات التنفيذية ويقترح الإجراء الأفضل التالي."),\n'
+          if '"CEO Office": ("مكتب الرئيس التنفيذي"' not in server:
+              server = server.replace(
+                  '    "Chief of Staff Agent": ("مكتب الرئيس التنفيذي", "يتابع الأولويات والقرارات والتصعيدات التنفيذية ويقترح الإجراء الأفضل التالي."),\n',
+                  ceo_mapping + '    "Chief of Staff Agent": ("مكتب الرئيس التنفيذي", "يتابع الأولويات والقرارات والتصعيدات التنفيذية ويقترح الإجراء الأفضل التالي."),\n'
+              )
+          server_path.write_text(server, encoding='utf-8')
+
+          print('Updated files:')
+          for item in sorted(set(changed)):
+              print('-', item)
+          PY
+
+      - name: Verify terminology
+        shell: bash
+        run: |
+          if grep -RIn --exclude-dir=.git --exclude='rename-ceo-office.yml' -E 'رئيس الديوان|وكيل رئيس الديوان|وكيل الديوان' frontend backend README.md; then
+            echo 'Obsolete Arabic terminology remains.'
+            exit 1
+          fi
+          grep -RIn --exclude-dir=.git -E 'مكتب الرئيس التنفيذي|CEO Office' frontend backend README.md | head -80
+
+      - name: Commit terminology update
+        shell: bash
+        run: |
+          git config user.name "NEXGEN Arabic Terminology"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No terminology changes detected."
+            exit 0
+          fi
+          git commit -m "Rename Chief of Staff terminology to CEO Office"
+          git push origin HEAD:main
