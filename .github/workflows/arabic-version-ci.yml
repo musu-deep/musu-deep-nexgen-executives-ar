@@ -28,7 +28,21 @@ jobs:
         run: npm --prefix frontend install --legacy-peer-deps --loglevel=error
 
       - name: Build Arabic frontend
-        run: npm --prefix frontend run build
+        shell: bash
+        run: |
+          set +e
+          npm --prefix frontend run build > frontend-build.log 2>&1
+          status=$?
+          cat frontend-build.log
+          exit $status
+
+      - name: Upload frontend build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-log
+          path: frontend-build.log
+          if-no-files-found: error
 
       - name: Set up Python
         uses: actions/setup-python@v5
