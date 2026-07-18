@@ -130,7 +130,7 @@ export default function LoginPage() {
 
             <div className="inline-flex items-center gap-2 text-yellow-400 text-xs tracking-[0.12em] mb-3">
               <Sparkles size={13} />
-              نسخة الهاكاثون
+              تشغيل محلي عبر وكلاء الذكاء الاصطناعي
             </div>
 
             <h2 className="font-heading text-2xl font-bold text-slate-50">

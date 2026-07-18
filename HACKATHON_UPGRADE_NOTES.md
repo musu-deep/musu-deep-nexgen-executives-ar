@@ -1,4 +1,4 @@
-# CEO OFFICE — Hackathon AI Upgrade Notes
+# CEO OFFICE — Project AI Upgrade Notes
 
 This build adds a Google Cloud/Gemini-ready Executive AI Layer without replacing the existing platform.
 
@@ -10,7 +10,7 @@ This build adds a Google Cloud/Gemini-ready Executive AI Layer without replacing
 - Generate CEO Brief action for dashboard, meetings, meeting requests, projects, tasks, and daily report items.
 - Interactive detail modal for dashboard cards, meeting cards, meeting request cards, and daily brief cards.
 - AI command/navigation bar: ask the platform to open meetings, requests, projects, tasks, reports, or risks.
-- English-first hackathon navigation labels.
+- English-first project navigation labels.
 - Frontend role-based menu filtering.
 - Backend role-based data filtering remains active for projects/tasks/dashboard.
 - Daily executive brief switched to Google Gemini-ready logic with deterministic fallback.

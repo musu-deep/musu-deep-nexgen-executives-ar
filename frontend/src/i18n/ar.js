@@ -30,7 +30,6 @@ const EXACT_TRANSLATIONS = {
   "Organizational Memory": "الذاكرة المؤسسية",
   "Agent Integration": "تكامل الوكلاء",
   "Executive AI": "الذكاء التنفيذي",
-  "Hackathon Edition": "نسخة الهاكاثون",
 
   // Common actions
   "Add": "إضافة",

@@ -602,7 +602,7 @@ async def seed_data():
     await db.projects.create_index("sector")
     await db.tasks.create_index("project_id")
 
-    # Reset demo users on every startup to keep hackathon login credentials consistent
+    # Reset demo users on every startup to keep project login credentials consistent
     await db.users.delete_many({})
 
     user_id_by_role = {}

@@ -490,7 +490,7 @@ class VoiceTranscribeInput(BaseModel):
 @api_router.post("/voice/transcribe")
 async def voice_transcribe(payload: VoiceTranscribeInput, user=Depends(get_current_user)):
     """Google Cloud/Gemini-ready voice directive capture.
-    For hackathon demos this stores a safe directive without using non-Google AI services.
+    For project demos this stores a safe directive without using non-Google AI services.
     Production wiring point: Google Cloud Speech-to-Text + Gemini on Vertex AI.
     """
     transcript_text = "Voice directive captured. Connect Google Cloud Speech-to-Text and Gemini to enable live transcription."
@@ -642,7 +642,7 @@ async def delete_event(eid: str, user=Depends(get_current_user)):
 
 
 def _call_gemini(prompt: str, system: str = "You are the AI-powered CEO Office for enterprise executives.") -> Optional[str]:
-    """Contest-compliant Gemini integration.
+    """Production-ready Gemini integration.
     Uses Google Gemini API when GEMINI_API_KEY or GOOGLE_API_KEY is configured; otherwise returns None.
     No non-Google AI services are used.
     """
@@ -712,7 +712,7 @@ async def daily_executive_report(user=Depends(get_current_user)):
     # Pending voice directives
     pending_voice = await db.voice_directives.find({"applied": False}, {"_id": 0}).sort("created_at", -1).to_list(20)
 
-    # AI Summary via Google Gemini (contest-compliant) with deterministic fallback
+    # AI Summary via Google Gemini (production-ready) with deterministic fallback
     ctx = f"""Daily executive context {now.strftime('%Y-%m-%d')}:
 - Total projects: {len(projects)} (active: {sum(1 for p in projects if p.get('status')=='active')})
 - Critical projects: {len(critical)} -> {[p['name'] for p in critical[:5]]}
