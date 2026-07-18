@@ -1,0 +1,49 @@
+name: Arabic Edition CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend install --legacy-peer-deps --loglevel=error
+
+      - name: Build Arabic frontend
+        run: npm --prefix frontend run build
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/requirements.txt --quiet
+
+      - name: Compile Arabic backend
+        run: python -m py_compile backend/arabic_server.py
+
+      - name: Import Arabic FastAPI application
+        env:
+          MONGO_URL: mongodb://localhost:27017
+          DB_NAME: nexgen_executives_ar_ci
+          JWT_SECRET: ci-validation-secret-with-more-than-32-characters
+        run: python -c "from backend.arabic_server import app; print(app.title)"
