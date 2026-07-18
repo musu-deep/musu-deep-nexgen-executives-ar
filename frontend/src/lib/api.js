@@ -3,7 +3,7 @@ import { translateArabicText } from "../i18n/ar";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  "https://nexgen-executives.onrender.com";
+  "http://localhost:8001";
 
 export const API = `${BACKEND_URL}/api`;
 
