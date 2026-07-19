@@ -1,0 +1,71 @@
+name: Vercel Full Stack Smoke
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production API, login and session
+        env:
+          BASE_URL: https://musu-deep-nexgen-executives-ar-4dip.vercel.app
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.request
+
+          base = os.environ["BASE_URL"].rstrip("/")
+          last_error = "not started"
+          for attempt in range(90):
+              try:
+                  req = urllib.request.Request(
+                      base + "/api/openapi.json",
+                      headers={"User-Agent": "NEXGEN-Vercel-Smoke/1.0"},
+                  )
+                  with urllib.request.urlopen(req, timeout=20) as response:
+                      spec = json.loads(response.read().decode("utf-8"))
+                  assert spec["info"]["title"] == "NEXGEN EXECUTIVES — النسخة العربية"
+                  print("Vercel FastAPI ready on attempt", attempt + 1)
+                  break
+              except Exception as exc:
+                  last_error = repr(exc)
+                  print("Waiting for Vercel API:", last_error)
+                  time.sleep(10)
+          else:
+              raise SystemExit("Vercel API did not become ready: " + last_error)
+
+          payload = json.dumps({
+              "email": "ceo@company.demo",
+              "password": "ExecAgent2026!",
+          }).encode("utf-8")
+          login_request = urllib.request.Request(
+              base + "/api/auth/login",
+              data=payload,
+              headers={
+                  "Content-Type": "application/json",
+                  "User-Agent": "NEXGEN-Vercel-Smoke/1.0",
+              },
+          )
+          with urllib.request.urlopen(login_request, timeout=30) as response:
+              login = json.loads(response.read().decode("utf-8"))
+          token = login["access_token"]
+          assert login["user"]["role"] == "ceo"
+
+          me_request = urllib.request.Request(
+              base + "/api/auth/me",
+              headers={
+                  "Authorization": "Bearer " + token,
+                  "User-Agent": "NEXGEN-Vercel-Smoke/1.0",
+              },
+          )
+          with urllib.request.urlopen(me_request, timeout=30) as response:
+              me = json.loads(response.read().decode("utf-8"))
+          assert me["user"]["role"] == "ceo"
+          print("Production Vercel login and auth/me passed")
+          PY
