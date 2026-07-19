@@ -38,7 +38,12 @@ api.interceptors.request.use((config) => {
 export default api;
 
 export function formatApiError(detail) {
-  if (detail == null) return "حدث خطأ غير متوقع";
+  if (detail == null) {
+    if (!import.meta.env.DEV && !HAS_EXPLICIT_BACKEND) {
+      return "لم يُضبط رابط الباكند في بيئة النشر. أضف VITE_BACKEND_URL ثم أعد النشر.";
+    }
+    return `تعذر الاتصال بالباكند على ${API}. شغّل start-local.cmd من مجلد المشروع.`;
+  }
   if (typeof detail === "string") return translateArabicText(detail.trim());
   if (Array.isArray(detail))
     return detail
@@ -56,13 +61,7 @@ export function formatConnectionError(error) {
   if (error?.code === "ECONNABORTED") {
     return "انتهت مهلة الاتصال بالباكند. تحقق من تشغيل مكتب الرئيس التنفيذي الرقمي.";
   }
-  if (!error?.response) {
-    if (!import.meta.env.DEV && !HAS_EXPLICIT_BACKEND) {
-      return "لم يُضبط رابط الباكند في بيئة النشر. أضف VITE_BACKEND_URL ثم أعد النشر.";
-    }
-    return `تعذر الاتصال بالباكند على ${API}. شغّل start-local.cmd من مجلد المشروع.`;
-  }
-  return "تعذر تنفيذ الطلب. حاول مرة أخرى.";
+  return formatApiError(null);
 }
 
 export const SECTOR_LABELS = {
