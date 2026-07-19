@@ -18,3 +18,18 @@ os.environ.setdefault(
 )
 
 from backend.embedded_server import app  # noqa: E402,F401
+
+
+@app.get("/api/openapi.json", include_in_schema=False)
+async def vercel_openapi_schema():
+    """Expose FastAPI's schema under the Vercel function prefix."""
+    return app.openapi()
+
+
+@app.get("/api/health", include_in_schema=False)
+async def vercel_health():
+    return {
+        "status": "ready",
+        "service": "NEXGEN EXECUTIVES",
+        "runtime": "vercel-python",
+    }
