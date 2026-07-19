@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import os
 import shutil
 import signal
@@ -20,6 +21,7 @@ FRONTEND_DIR = ROOT / "frontend"
 ENV_FILE = BACKEND_DIR / ".env"
 ENV_EXAMPLE = BACKEND_DIR / ".env.example"
 REQUIREMENTS = BACKEND_DIR / "requirements.txt"
+APP_TITLE = "NEXGEN EXECUTIVES — النسخة العربية"
 
 
 def copy_env_if_missing() -> None:
@@ -50,10 +52,14 @@ def port_is_open(host: str, port: int, timeout: float = 0.5) -> bool:
 
 
 def api_is_ready(port: int, timeout: float = 1.0) -> bool:
+    """يتأكد أن المنفذ يشغّل هذا المشروع تحديدًا، لا تطبيقًا آخر."""
     try:
-        with urlopen(f"http://127.0.0.1:{port}/api/", timeout=timeout) as response:
-            return 200 <= response.status < 500
-    except (URLError, OSError, TimeoutError):
+        with urlopen(f"http://127.0.0.1:{port}/openapi.json", timeout=timeout) as response:
+            if not 200 <= response.status < 300:
+                return False
+            payload = json.loads(response.read().decode("utf-8"))
+            return payload.get("info", {}).get("title") == APP_TITLE
+    except (URLError, OSError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError):
         return False
 
 
@@ -136,14 +142,14 @@ def ensure_local_mongodb() -> subprocess.Popen | None:
 def choose_backend_port() -> tuple[int, bool]:
     preferred = int(os.getenv("BACKEND_PORT", "8001"))
     if api_is_ready(preferred):
-        print(f"[NEXGEN] يوجد باكند جاهز بالفعل على المنفذ {preferred}.")
+        print(f"[NEXGEN] يوجد باكند صحيح وجاهز بالفعل على المنفذ {preferred}.")
         return preferred, True
     if not port_is_open("127.0.0.1", preferred):
         return preferred, False
 
     for port in range(preferred + 1, preferred + 50):
         if not port_is_open("127.0.0.1", port):
-            print(f"[NEXGEN] المنفذ {preferred} مستخدم؛ سيتم استخدام {port} تلقائيًا.")
+            print(f"[NEXGEN] المنفذ {preferred} مستخدم بواسطة تطبيق آخر؛ سيتم استخدام {port} تلقائيًا.")
             return port, False
     raise SystemExit("[NEXGEN] لم يتم العثور على منفذ متاح للباكند.")
 
@@ -156,10 +162,10 @@ def wait_for_backend(process: subprocess.Popen | None, port: int, timeout: int =
                 f"[NEXGEN] فشل تشغيل الباكند برمز {process.returncode}. راجع الرسالة الظاهرة أعلاه."
             )
         if api_is_ready(port):
-            print(f"[NEXGEN] الباكند جاهز على http://127.0.0.1:{port}/api/")
+            print(f"[NEXGEN] الباكند الصحيح جاهز على http://127.0.0.1:{port}/api/")
             return
         time.sleep(0.5)
-    raise SystemExit(f"[NEXGEN] لم يستجب الباكند على المنفذ {port} خلال المهلة المحددة.")
+    raise SystemExit(f"[NEXGEN] لم يستجب باكند NEXGEN على المنفذ {port} خلال المهلة المحددة.")
 
 
 def terminate(process: subprocess.Popen | None) -> None:
