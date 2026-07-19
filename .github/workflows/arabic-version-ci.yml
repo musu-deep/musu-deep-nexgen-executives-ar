@@ -2,17 +2,14 @@ name: Arabic Edition CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,25 +21,10 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        run: npm --prefix frontend install --legacy-peer-deps --loglevel=error
-
-      - name: Build Arabic frontend
-        shell: bash
+      - name: Install and build Arabic frontend
         run: |
-          set +e
-          npm --prefix frontend run build > frontend-build.log 2>&1
-          status=$?
-          cat frontend-build.log
-          exit $status
-
-      - name: Upload frontend build diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build-log
-          path: frontend-build.log
-          if-no-files-found: error
+          npm --prefix frontend install --legacy-peer-deps --loglevel=error
+          npm --prefix frontend run build
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -52,12 +34,53 @@ jobs:
       - name: Install backend dependencies
         run: python -m pip install -r backend/requirements.txt --quiet
 
-      - name: Compile Arabic backend and local launcher
-        run: python -m py_compile backend/arabic_server.py scripts/dev.py
+      - name: Compile embedded backend and launchers
+        run: python -m py_compile backend/server.py backend/arabic_server.py backend/embedded_server.py scripts/dev.py scripts/dev_embedded.py
 
-      - name: Import Arabic FastAPI application
+      - name: Start embedded API and verify authentication
         env:
-          MONGO_URL: mongodb://localhost:27017
           DB_NAME: nexgen_executives_ar_ci
           JWT_SECRET: ci-validation-secret-with-more-than-32-characters
-        run: python -c "from backend.arabic_server import app; print(app.title)"
+        run: |
+          python -m uvicorn backend.embedded_server:app --host 127.0.0.1 --port 8001 > backend-ci.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true; cat backend-ci.log' EXIT
+          python - <<'PY'
+          import json
+          import time
+          import urllib.request
+
+          base = "http://127.0.0.1:8001"
+          for _ in range(60):
+              try:
+                  with urllib.request.urlopen(base + "/openapi.json", timeout=1) as response:
+                      spec = json.loads(response.read().decode())
+                  assert spec["info"]["title"] == "NEXGEN EXECUTIVES — النسخة العربية"
+                  break
+              except Exception:
+                  time.sleep(0.5)
+          else:
+              raise SystemExit("Embedded API did not start")
+
+          payload = json.dumps({
+              "email": "ceo@company.demo",
+              "password": "ExecAgent2026!"
+          }).encode()
+          login_request = urllib.request.Request(
+              base + "/api/auth/login",
+              data=payload,
+              headers={"Content-Type": "application/json"},
+          )
+          with urllib.request.urlopen(login_request, timeout=5) as response:
+              login = json.loads(response.read().decode())
+          token = login["access_token"]
+
+          me_request = urllib.request.Request(
+              base + "/api/auth/me",
+              headers={"Authorization": "Bearer " + token},
+          )
+          with urllib.request.urlopen(me_request, timeout=5) as response:
+              me = json.loads(response.read().decode())
+          assert me["user"]["role"] == "ceo"
+          print("Embedded API login and auth/me passed")
+          PY
