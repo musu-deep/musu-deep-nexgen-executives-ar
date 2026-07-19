@@ -1,0 +1,29 @@
+name: Temporary production smoke test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temporary-production-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Test hosted API
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://musu-deep-nexgen-executives-ar-4dip.vercel.app'
+          HEALTH=$(curl --fail --silent --show-error "$BASE/api/health")
+          echo "$HEALTH" | jq -e . >/dev/null
+          LOGIN=$(curl --fail --silent --show-error -X POST "$BASE/api/auth/login" \
+            -H 'Content-Type: application/json' \
+            --data '{"email":"ceo@company.demo","password":"ExecAgent2026!"}')
+          TOKEN=$(echo "$LOGIN" | jq -er '.access_token // .token')
+          curl --fail --silent --show-error "$BASE/api/auth/me" \
+            -H "Authorization: Bearer $TOKEN" | jq -e '.email == "ceo@company.demo"' >/dev/null
+          curl --fail --silent --show-error "$BASE/api/dashboard" \
+            -H "Authorization: Bearer $TOKEN" | jq -e . >/dev/null
