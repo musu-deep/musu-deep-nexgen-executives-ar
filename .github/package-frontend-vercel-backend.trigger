@@ -1,1 +1,1 @@
-Package the complete FastAPI backend inside the configured frontend Vercel root.
+Generate the complete hosted Node API at both possible Vercel roots.
