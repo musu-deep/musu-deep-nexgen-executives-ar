@@ -1,0 +1,153 @@
+name: Package Frontend Vercel Backend
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/package-frontend-vercel-backend.trigger]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Package FastAPI inside Vercel root
+        shell: bash
+        run: |
+          set -e
+          mkdir -p frontend/api/backend
+          touch frontend/api/__init__.py
+          cp backend/__init__.py frontend/api/backend/__init__.py
+          cp backend/server.py frontend/api/backend/server.py
+          cp backend/arabic_server.py frontend/api/backend/arabic_server.py
+          cp backend/arak_extensions.py frontend/api/backend/arak_extensions.py
+          cp backend/embedded_server.py frontend/api/backend/embedded_server.py
+
+          cat > frontend/api/index.py <<'PY'
+          """Vercel FastAPI entry point inside the configured frontend root."""
+          from __future__ import annotations
+
+          import os
+          from fastapi import FastAPI
+
+          os.environ.setdefault("EMBEDDED_DATA_FILE", "/tmp/nexgen_executives_data.json")
+          os.environ.setdefault("DB_NAME", "nexgen_executives_vercel")
+          os.environ.setdefault(
+              "JWT_SECRET",
+              "nexgen-vercel-demo-secret-change-in-project-settings-2026",
+          )
+
+          from api.backend import embedded_server
+
+          backend_app = embedded_server.app
+          app = FastAPI(
+              title="NEXGEN EXECUTIVES — Vercel",
+              description="Hosted digital CEO office",
+          )
+
+          @app.on_event("startup")
+          async def initialize_vercel_runtime() -> None:
+              await embedded_server.initialize_embedded_runtime()
+
+          @app.get("/api/health", include_in_schema=False)
+          async def health():
+              return {
+                  "status": "ready",
+                  "service": "NEXGEN EXECUTIVES",
+                  "runtime": "vercel-python",
+              }
+
+          @app.get("/api/openapi.json", include_in_schema=False)
+          async def openapi_schema():
+              return backend_app.openapi()
+
+          app.mount("/", backend_app)
+          PY
+
+          cat > frontend/requirements.txt <<'REQ'
+          fastapi>=0.117.1
+          pydantic[email]>=2.7
+          python-dotenv>=1.0
+          motor>=3.6
+          pymongo>=4.9
+          requests>=2.32
+          python-multipart>=0.0.12
+          bcrypt>=4.2
+          PyJWT>=2.9
+          mongomock-motor>=0.0.36
+          REQ
+
+          cat > frontend/vercel.json <<'JSON'
+          {
+            "$schema": "https://openapi.vercel.sh/vercel.json",
+            "framework": "vite",
+            "buildCommand": "npm run build",
+            "installCommand": "npm install --legacy-peer-deps",
+            "outputDirectory": "dist",
+            "functions": {
+              "api/index.py": {
+                "maxDuration": 60,
+                "includeFiles": "api/backend/**",
+                "excludeFiles": "{src/**,public/**,node_modules/**,dist/**}"
+              }
+            },
+            "routes": [
+              { "handle": "filesystem" },
+              { "src": "/(.*)", "dest": "/index.html" }
+            ]
+          }
+          JSON
+
+      - name: Validate packaged backend
+        run: |
+          python -m pip install -r frontend/requirements.txt --quiet
+          PYTHONPATH=frontend python -m py_compile \
+            frontend/api/index.py \
+            frontend/api/backend/server.py \
+            frontend/api/backend/arabic_server.py \
+            frontend/api/backend/arak_extensions.py \
+            frontend/api/backend/embedded_server.py
+          PYTHONPATH=frontend python -m uvicorn api.index:app --host 127.0.0.1 --port 8001 > /tmp/frontend-api.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true; cat /tmp/frontend-api.log' EXIT
+          python - <<'PY'
+          import json, time, urllib.request
+          base = 'http://127.0.0.1:8001'
+          for _ in range(60):
+              try:
+                  with urllib.request.urlopen(base + '/api/health', timeout=1) as r:
+                      assert json.loads(r.read().decode())['status'] == 'ready'
+                  break
+              except Exception:
+                  time.sleep(.5)
+          else:
+              raise SystemExit('packaged API not ready')
+          body = json.dumps({'email':'ceo@company.demo','password':'ExecAgent2026!'}).encode()
+          req = urllib.request.Request(base + '/api/auth/login', data=body, headers={'Content-Type':'application/json'})
+          with urllib.request.urlopen(req, timeout=10) as r:
+              login = json.loads(r.read().decode())
+          assert login['user']['role'] == 'ceo'
+          print('Packaged frontend-root FastAPI login passed')
+          PY
+
+      - name: Build frontend
+        run: |
+          npm --prefix frontend install --legacy-peer-deps --loglevel=error
+          npm --prefix frontend run build
+
+      - name: Commit packaged runtime
+        run: |
+          git config user.name "NEXGEN Vercel Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add frontend/api frontend/requirements.txt frontend/vercel.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Package FastAPI backend inside Vercel frontend root"
+          git push origin HEAD:main
