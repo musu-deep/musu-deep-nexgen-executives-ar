@@ -11,8 +11,7 @@
       "excludeFiles": "{frontend/**,.github/**,scripts/**,**/__pycache__/**}"
     }
   },
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
