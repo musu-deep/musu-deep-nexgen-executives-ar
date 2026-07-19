@@ -5,10 +5,8 @@
   "outputDirectory": "frontend/dist",
   "framework": "vite",
   "functions": {
-    "api/index.py": {
-      "maxDuration": 60,
-      "includeFiles": "backend/**",
-      "excludeFiles": "{frontend/**,.github/**,scripts/**,**/__pycache__/**}"
+    "api/[...path].js": {
+      "maxDuration": 60
     }
   },
   "rewrites": [
