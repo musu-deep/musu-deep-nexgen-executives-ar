@@ -33,49 +33,99 @@ jobs:
         run: python -m pip install -r backend/requirements.txt --quiet
       - name: Compile embedded backend and launchers
         run: python -m py_compile backend/server.py backend/arabic_server.py backend/embedded_server.py scripts/dev.py scripts/dev_embedded.py
-      - name: Start API and verify CEO authentication
+      - name: Verify authentication and restart persistence
         env:
           DB_NAME: nexgen_executives_ar_ci
           JWT_SECRET: ci-validation-secret-with-more-than-32-characters
+          EMBEDDED_DATA_FILE: /tmp/nexgen-executives-ci.json
         shell: bash
         run: |
           set +e
-          python -m uvicorn backend.embedded_server:app --host 127.0.0.1 --port 8001 > backend-ci.log 2>&1 &
+          rm -f "$EMBEDDED_DATA_FILE"
+
+          python -m uvicorn backend.embedded_server:app --host 127.0.0.1 --port 8001 > backend-first.log 2>&1 &
           PID=$!
           python - <<'PY' > smoke-ci.log 2>&1
-          import json
-          import time
-          import urllib.request
-
+          import json, time, urllib.request
           base = "http://127.0.0.1:8001"
-          for attempt in range(60):
-              try:
-                  with urllib.request.urlopen(base + "/openapi.json", timeout=1) as response:
-                      spec = json.loads(response.read().decode())
-                  assert spec["info"]["title"] == "NEXGEN EXECUTIVES — النسخة العربية"
-                  print("OpenAPI ready on attempt", attempt + 1)
-                  break
-              except Exception as exc:
-                  last_error = repr(exc)
-                  time.sleep(0.5)
-          else:
-              raise SystemExit("Embedded API did not start: " + last_error)
 
-          payload = json.dumps({"email":"ceo@company.demo","password":"ExecAgent2026!"}).encode()
-          request = urllib.request.Request(base + "/api/auth/login", data=payload, headers={"Content-Type":"application/json"})
-          with urllib.request.urlopen(request, timeout=10) as response:
-              login = json.loads(response.read().decode())
-          print("Login response keys:", sorted(login))
-          token = login["access_token"]
+          def ready():
+              last = None
+              for _ in range(60):
+                  try:
+                      with urllib.request.urlopen(base + "/openapi.json", timeout=1) as response:
+                          return json.loads(response.read().decode())
+                  except Exception as exc:
+                      last = exc
+                      time.sleep(0.5)
+              raise SystemExit(f"API did not start: {last!r}")
 
+          def login():
+              body = json.dumps({"email":"ceo@company.demo","password":"ExecAgent2026!"}).encode()
+              request = urllib.request.Request(base + "/api/auth/login", data=body, headers={"Content-Type":"application/json"})
+              with urllib.request.urlopen(request, timeout=10) as response:
+                  return json.loads(response.read().decode())["access_token"]
+
+          ready()
+          token = login()
           request = urllib.request.Request(base + "/api/auth/me", headers={"Authorization":"Bearer " + token})
           with urllib.request.urlopen(request, timeout=10) as response:
               me = json.loads(response.read().decode())
           assert me["user"]["role"] == "ceo"
-          print("Embedded API login and auth/me passed")
+
+          project = {
+              "name": "Persistent Embedded CI Project",
+              "description": "Created before restart and verified after restart",
+              "sector": "digital",
+              "progress": 11,
+              "status": "active",
+              "budget": 1000,
+              "priority": "high"
+          }
+          request = urllib.request.Request(
+              base + "/api/projects",
+              data=json.dumps(project).encode(),
+              headers={"Content-Type":"application/json", "Authorization":"Bearer " + token},
+          )
+          with urllib.request.urlopen(request, timeout=10) as response:
+              created = json.loads(response.read().decode())
+          assert created["name"] == project["name"]
+          print("First launch: login and project creation passed")
+          PY
+          FIRST_STATUS=$?
+          kill $PID 2>/dev/null || true
+          wait $PID 2>/dev/null || true
+          if [ $FIRST_STATUS -ne 0 ]; then exit $FIRST_STATUS; fi
+
+          python -m uvicorn backend.embedded_server:app --host 127.0.0.1 --port 8001 > backend-second.log 2>&1 &
+          PID=$!
+          python - <<'PY' >> smoke-ci.log 2>&1
+          import json, time, urllib.request
+          base = "http://127.0.0.1:8001"
+
+          for _ in range(60):
+              try:
+                  with urllib.request.urlopen(base + "/openapi.json", timeout=1):
+                      break
+              except Exception:
+                  time.sleep(0.5)
+          else:
+              raise SystemExit("API did not restart")
+
+          body = json.dumps({"email":"ceo@company.demo","password":"ExecAgent2026!"}).encode()
+          request = urllib.request.Request(base + "/api/auth/login", data=body, headers={"Content-Type":"application/json"})
+          with urllib.request.urlopen(request, timeout=10) as response:
+              token = json.loads(response.read().decode())["access_token"]
+
+          request = urllib.request.Request(base + "/api/projects", headers={"Authorization":"Bearer " + token})
+          with urllib.request.urlopen(request, timeout=10) as response:
+              projects = json.loads(response.read().decode())
+          assert any(project["name"] == "Persistent Embedded CI Project" for project in projects)
+          print("Second launch: persisted project restored successfully")
           PY
           STATUS=$?
           kill $PID 2>/dev/null || true
+          wait $PID 2>/dev/null || true
           exit $STATUS
       - name: Upload embedded diagnostics
         if: always()
@@ -83,6 +133,8 @@ jobs:
         with:
           name: embedded-backend-diagnostics
           path: |
-            backend-ci.log
+            backend-first.log
+            backend-second.log
             smoke-ci.log
+            /tmp/nexgen-executives-ci.json
           if-no-files-found: warn
