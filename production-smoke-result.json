@@ -1,0 +1,11 @@
+{
+  "status": "failure",
+  "error": "login: curl: (22) The requested URL returned error: 404",
+  "tested_at": "2026-07-19T12:59:47Z",
+  "endpoints": [
+    "/api/health",
+    "/api/auth/login",
+    "/api/auth/me",
+    "/api/dashboard"
+  ]
+}
