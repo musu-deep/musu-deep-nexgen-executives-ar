@@ -8,79 +8,76 @@ on:
   workflow_dispatch:
 
 jobs:
-  validate:
+  frontend:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-
       - name: Install and build Arabic frontend
         run: |
           npm --prefix frontend install --legacy-peer-deps --loglevel=error
           npm --prefix frontend run build
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+  embedded-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Install backend dependencies
         run: python -m pip install -r backend/requirements.txt --quiet
-
       - name: Compile embedded backend and launchers
         run: python -m py_compile backend/server.py backend/arabic_server.py backend/embedded_server.py scripts/dev.py scripts/dev_embedded.py
-
-      - name: Start embedded API and verify authentication
+      - name: Start API and verify CEO authentication
         env:
           DB_NAME: nexgen_executives_ar_ci
           JWT_SECRET: ci-validation-secret-with-more-than-32-characters
+        shell: bash
         run: |
+          set +e
           python -m uvicorn backend.embedded_server:app --host 127.0.0.1 --port 8001 > backend-ci.log 2>&1 &
           PID=$!
-          trap 'kill $PID || true; cat backend-ci.log' EXIT
-          python - <<'PY'
+          python - <<'PY' > smoke-ci.log 2>&1
           import json
           import time
           import urllib.request
 
           base = "http://127.0.0.1:8001"
-          for _ in range(60):
+          for attempt in range(60):
               try:
                   with urllib.request.urlopen(base + "/openapi.json", timeout=1) as response:
                       spec = json.loads(response.read().decode())
                   assert spec["info"]["title"] == "NEXGEN EXECUTIVES — النسخة العربية"
+                  print("OpenAPI ready on attempt", attempt + 1)
                   break
-              except Exception:
+              except Exception as exc:
+                  last_error = repr(exc)
                   time.sleep(0.5)
           else:
-              raise SystemExit("Embedded API did not start")
+              raise SystemExit("Embedded API did not start: " + last_error)
 
-          payload = json.dumps({
-              "email": "ceo@company.demo",
-              "password": "ExecAgent2026!"
-          }).encode()
-          login_request = urllib.request.Request(
-              base + "/api/auth/login",
-              data=payload,
-              headers={"Content-Type": "application/json"},
-          )
-          with urllib.request.urlopen(login_request, timeout=5) as response:
+          payload = json.dumps({"email":"ceo@company.demo","password":"ExecAgent2026!"}).encode()
+          request = urllib.request.Request(base + "/api/auth/login", data=payload, headers={"Content-Type":"application/json"})
+          with urllib.request.urlopen(request, timeout=10) as response:
               login = json.loads(response.read().decode())
+          print("Login response keys:", sorted(login))
           token = login["access_token"]
 
-          me_request = urllib.request.Request(
-              base + "/api/auth/me",
-              headers={"Authorization": "Bearer " + token},
-          )
-          with urllib.request.urlopen(me_request, timeout=5) as response:
+          request = urllib.request.Request(base + "/api/auth/me", headers={"Authorization":"Bearer " + token})
+          with urllib.request.urlopen(request, timeout=10) as response:
               me = json.loads(response.read().decode())
           assert me["user"]["role"] == "ceo"
           print("Embedded API login and auth/me passed")
           PY
+          STATUS=$?
+          kill $PID 2>/dev/null || true
+          echo "===== SMOKE TEST ====="
+          cat smoke-ci.log
+          echo "===== BACKEND LOG ====="
+          tail -120 backend-ci.log
+          exit $STATUS
