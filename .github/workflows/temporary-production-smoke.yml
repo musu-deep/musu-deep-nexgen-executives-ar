@@ -7,23 +7,46 @@ on:
       - '.github/workflows/temporary-production-smoke.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Test hosted API
+      - uses: actions/checkout@v4
+      - name: Test hosted API and record result
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           BASE='https://musu-deep-nexgen-executives-ar-4dip.vercel.app'
-          HEALTH=$(curl --fail --silent --show-error "$BASE/api/health")
-          echo "$HEALTH" | jq -e . >/dev/null
-          LOGIN=$(curl --fail --silent --show-error -X POST "$BASE/api/auth/login" \
-            -H 'Content-Type: application/json' \
-            --data '{"email":"ceo@company.demo","password":"ExecAgent2026!"}')
-          TOKEN=$(echo "$LOGIN" | jq -er '.access_token // .token')
-          curl --fail --silent --show-error "$BASE/api/auth/me" \
-            -H "Authorization: Bearer $TOKEN" | jq -e '.email == "ceo@company.demo"' >/dev/null
-          curl --fail --silent --show-error "$BASE/api/dashboard" \
-            -H "Authorization: Bearer $TOKEN" | jq -e . >/dev/null
+          ERROR=''
+          HEALTH=$(curl --fail --silent --show-error "$BASE/api/health" 2>&1)
+          RC=$?
+          if [ $RC -ne 0 ]; then ERROR="health: $HEALTH"; fi
+          if [ -z "$ERROR" ]; then echo "$HEALTH" | jq -e . >/dev/null 2>&1 || ERROR='health: invalid JSON'; fi
+          if [ -z "$ERROR" ]; then
+            LOGIN=$(curl --fail --silent --show-error -X POST "$BASE/api/auth/login" -H 'Content-Type: application/json' --data '{"email":"ceo@company.demo","password":"ExecAgent2026!"}' 2>&1)
+            RC=$?
+            if [ $RC -ne 0 ]; then ERROR="login: $LOGIN"; fi
+          fi
+          if [ -z "$ERROR" ]; then TOKEN=$(echo "$LOGIN" | jq -er '.access_token // .token' 2>/dev/null) || ERROR='login: missing token'; fi
+          if [ -z "$ERROR" ]; then
+            ME=$(curl --fail --silent --show-error "$BASE/api/auth/me" -H "Authorization: Bearer $TOKEN" 2>&1)
+            RC=$?
+            if [ $RC -ne 0 ]; then ERROR="auth_me: $ME"; elif ! echo "$ME" | jq -e '.email == "ceo@company.demo"' >/dev/null 2>&1; then ERROR='auth_me: unexpected user'; fi
+          fi
+          if [ -z "$ERROR" ]; then
+            DASH=$(curl --fail --silent --show-error "$BASE/api/dashboard" -H "Authorization: Bearer $TOKEN" 2>&1)
+            RC=$?
+            if [ $RC -ne 0 ]; then ERROR="dashboard: $DASH"; elif ! echo "$DASH" | jq -e . >/dev/null 2>&1; then ERROR='dashboard: invalid JSON'; fi
+          fi
+          if [ -z "$ERROR" ]; then STATUS='success'; else STATUS='failure'; fi
+          jq -n --arg status "$STATUS" --arg error "$ERROR" --arg tested_at "$(date -u +%FT%TZ)" '{status:$status,error:$error,tested_at:$tested_at,endpoints:["/api/health","/api/auth/login","/api/auth/me","/api/dashboard"]}' > production-smoke-result.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add production-smoke-result.json
+          git commit -m "Record production smoke test result" || true
+          git push
+          test "$STATUS" = 'success'
