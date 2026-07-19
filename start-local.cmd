@@ -5,6 +5,7 @@ cd /d "%~dp0"
 
 echo ==================================================
 echo   NEXGEN EXECUTIVES - مكتب الرئيس التنفيذي الرقمي
+echo   تشغيل ذاتي بدون MongoDB
 echo ==================================================
 echo.
 
@@ -24,7 +25,7 @@ if errorlevel 1 (
   exit /b 2
 )
 
-python scripts\dev.py
+python scripts\dev_embedded.py
 set EXIT_CODE=%ERRORLEVEL%
 
 if not "%EXIT_CODE%"=="0" (
