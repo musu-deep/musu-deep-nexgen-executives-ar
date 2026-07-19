@@ -4,6 +4,7 @@ pydantic[email]
 python-dotenv
 motor
 pymongo
+mongomock-motor>=0.0.36
 requests
 python-multipart
 pandas
