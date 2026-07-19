@@ -1,15 +1,29 @@
 import axios from "axios";
 import { translateArabicText } from "../i18n/ar";
 
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  "http://localhost:8001";
+const configuredBackend = (import.meta.env.VITE_BACKEND_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
 
-export const API = `${BACKEND_URL}/api`;
+const isBrowser = typeof window !== "undefined";
+const isLocalPage =
+  isBrowser && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
+const BACKEND_URL =
+  configuredBackend ||
+  (import.meta.env.DEV || isLocalPage ? "http://127.0.0.1:8001" : "");
+
+// في التطوير المحلي يستخدم المشغل VITE_BACKEND_URL تلقائيًا.
+// في الإنتاج لا يجوز الرجوع إلى localhost؛ عند غياب المتغير نستخدم /api
+// حتى تظهر مشكلة إعداد النشر بوضوح بدل محاولة الاتصال بجهاز الزائر.
+export const API = BACKEND_URL ? `${BACKEND_URL}/api` : "/api";
+export const HAS_EXPLICIT_BACKEND = Boolean(configuredBackend);
+export const IS_LOCAL_API = API.includes("127.0.0.1") || API.includes("localhost");
 
 const api = axios.create({
   baseURL: API,
   withCredentials: false,
+  timeout: 20000,
 });
 
 api.interceptors.request.use((config) => {
@@ -33,6 +47,22 @@ export function formatApiError(detail) {
       .join(" • ");
   if (detail && typeof detail.msg === "string") return translateArabicText(detail.msg);
   return translateArabicText(String(detail));
+}
+
+export function formatConnectionError(error) {
+  if (error?.response?.data?.detail) {
+    return formatApiError(error.response.data.detail);
+  }
+  if (error?.code === "ECONNABORTED") {
+    return "انتهت مهلة الاتصال بالباكند. تحقق من تشغيل مكتب الرئيس التنفيذي الرقمي.";
+  }
+  if (!error?.response) {
+    if (!import.meta.env.DEV && !HAS_EXPLICIT_BACKEND) {
+      return "لم يُضبط رابط الباكند في بيئة النشر. أضف VITE_BACKEND_URL ثم أعد النشر.";
+    }
+    return `تعذر الاتصال بالباكند على ${API}. شغّل start-local.cmd من مجلد المشروع.`;
+  }
+  return "تعذر تنفيذ الطلب. حاول مرة أخرى.";
 }
 
 export const SECTOR_LABELS = {
