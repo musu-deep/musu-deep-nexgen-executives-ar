@@ -13,9 +13,13 @@
     },
     "api/staff-me.js": {
       "maxDuration": 30
+    },
+    "api/finance-login.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
+    { "source": "/api/auth/finance-login", "destination": "/api/finance-login" },
     { "source": "/api/auth/login", "destination": "/api/staff-login" },
     { "source": "/api/auth/me", "destination": "/api/staff-me" },
     { "source": "/api/:path*", "destination": "/api/[...path]" },
