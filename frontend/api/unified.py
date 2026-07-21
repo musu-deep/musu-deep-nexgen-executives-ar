@@ -12,6 +12,7 @@ USERS = index_module.USERS
 core = index_module.core
 outer_app = index_module.app
 mounted_app = index_module.backend_app
+core_app = core.app
 
 
 HOSTED_USER_PROFILES = {
@@ -112,10 +113,12 @@ async def hosted_get_current_user(request):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
-# FastAPI stores dependency callables when routes are registered. Override the
-# original dependency on both the outer Vercel app and the mounted office app.
+# The hosted stack has three FastAPI layers: the Vercel entry app, the Arabic
+# shell, and the core office app mounted inside it. Every protected route must
+# use the same stateless verifier.
 outer_app.dependency_overrides[core.get_current_user] = hosted_get_current_user
 mounted_app.dependency_overrides[core.get_current_user] = hosted_get_current_user
+core_app.dependency_overrides[core.get_current_user] = hosted_get_current_user
 
 
 @outer_app.on_event("startup")
