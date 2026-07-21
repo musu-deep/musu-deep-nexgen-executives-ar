@@ -31,6 +31,15 @@ const APPROVED_EMPLOYEES = [
     active: true,
   },
   {
+    id: "usr_finance",
+    email: "finance@company.demo",
+    name: "محمد السيمت أبو إياد",
+    role: "dev_manager",
+    title: "المدير المالي",
+    department: "الإدارة المالية",
+    active: true,
+  },
+  {
     id: "usr_quality",
     email: "quality@company.demo",
     name: "عاصم الملاحمة",
