@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import NEXGEN_LOGO from "../assets/NEXGEN_EXECUTIVES.png";
+import UserAvatar from "./UserAvatar";
 
 const NAV = [
   { to: "/dashboard", icon: LayoutDashboard, label: "لوحة القيادة التنفيذية", testId: "nav-dashboard" },
@@ -91,13 +92,12 @@ export default function AppLayout() {
         </nav>
 
         <div className="p-4 border-t border-white/5">
-          <div className="glass-card p-3 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500/20 to-yellow-700/20 border border-yellow-500/30 flex items-center justify-center text-yellow-300 font-bold tabular-nums">
-              {user?.name?.[0] || "؟"}
-            </div>
+          <div className="glass-card p-3.5 flex items-center gap-3 border-yellow-500/10">
+            <UserAvatar user={user} size="sm" showStatus />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold text-slate-100 truncate">{user?.name}</div>
-              <div className="text-[11px] text-slate-500 truncate">{user?.title || ROLE_LABELS[user?.role]}</div>
+              <div className="text-[11px] text-yellow-400/75 truncate">{user?.title || ROLE_LABELS[user?.role]}</div>
+              {user?.department && <div className="text-[10px] text-slate-600 truncate mt-0.5">{user.department}</div>}
             </div>
             <button
               data-testid="logout-btn"
