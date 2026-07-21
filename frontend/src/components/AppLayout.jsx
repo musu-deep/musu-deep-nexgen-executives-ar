@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FolderKanban, ListChecks, BarChart3, Users,
   Shield, LogOut, Calendar, Video, FileArchive,
   Mic, MessageSquare, Bell, Settings, CalendarClock, FileText, BrainCircuit,
-  BriefcaseBusiness, Scale, UserRoundCog, UsersRound,
+  BriefcaseBusiness, Scale, UserRoundCog, UsersRound, ClipboardCheck,
 } from "lucide-react";
 
 import NEXGEN_LOGO from "../assets/NEXGEN_EXECUTIVES.png";
@@ -21,6 +21,7 @@ const NAV = [
   { to: "/presidential-advisor", icon: UserRoundCog, label: "المستشار الخاص للرئيس التنفيذي", testId: "nav-presidential-advisor", roles: ["admin", "ceo"] },
   { to: "/legal-affairs", icon: Scale, label: "الشؤون القانونية", testId: "nav-legal-affairs", roles: ["admin", "ceo", "tracker", "vp_development", "vp_investment"] },
   { to: "/human-resources", icon: UsersRound, label: "الموارد البشرية", testId: "nav-human-resources" },
+  { to: "/quality-control", icon: ClipboardCheck, label: "الرقابة والجودة", testId: "nav-quality-control" },
   { to: "/calendar", icon: Calendar, label: "التقويم", testId: "nav-calendar" },
   { to: "/meetings", icon: Video, label: "الاجتماعات", testId: "nav-meetings" },
   { to: "/meeting-requests", icon: CalendarClock, label: "طلبات الاجتماعات", testId: "nav-meeting-requests" },
