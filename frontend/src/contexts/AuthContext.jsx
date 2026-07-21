@@ -3,7 +3,6 @@ import api from "../lib/api";
 
 const AuthContext = createContext(null);
 const PROFILE_KEY = "arak_user_profile";
-const FINANCE_EMAIL = "finance@company.demo";
 
 function normalizeUser(user) {
   if (!user || typeof user !== "object") return user;
@@ -28,11 +27,11 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let cancelled = false;
-    const cachedProfile = readCachedProfile();
     const token = localStorage.getItem("arak_token");
+    const cachedProfile = readCachedProfile();
 
-    if (token && cachedProfile?.email === FINANCE_EMAIL) {
-      setUser(cachedProfile);
+    if (!token) {
+      setUser(false);
       setLoading(false);
       return () => { cancelled = true; };
     }
@@ -46,11 +45,13 @@ export const AuthProvider = ({ children }) => {
       })
       .catch(() => {
         if (!cancelled) {
+          localStorage.removeItem("arak_token");
           localStorage.removeItem(PROFILE_KEY);
-          setUser(false);
+          setUser(cachedProfile && token ? cachedProfile : false);
         }
       })
       .finally(() => !cancelled && setLoading(false));
+
     return () => { cancelled = true; };
   }, []);
 
@@ -64,8 +65,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const normalizedEmail = String(email || "").trim().toLowerCase();
-    const endpoint = normalizedEmail === FINANCE_EMAIL ? "/auth/finance-login" : "/auth/login";
-    const res = await api.post(endpoint, { email: normalizedEmail, password });
+    const res = await api.post("/auth/login", { email: normalizedEmail, password });
     return acceptSession(res.data);
   };
 
