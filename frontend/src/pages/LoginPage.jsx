@@ -15,9 +15,9 @@ const ROLE_QUICK = [
   { email: "followup@company.demo", label: "المتابعة التنفيذية", role: "tracker" },
   { email: "commercial@company.demo", label: "م. محمد شكاك — المشتريات والمستودعات", role: "commercial" },
   { email: "factory@company.demo", label: "م. عبد الرحمن الحسام — المصنع وأراك الوطنية", role: "factory" },
-  { email: "projects@company.demo", label: "أ. هاني محمد — إدارة المشاريع", role: "projects" },
+  { email: "technical.office@company.demo", label: "م. إسلام محمد — المكتب الفني", role: "technical-office" },
   { email: "wholesale@company.demo", label: "مدير مبيعات الجملة", role: "wholesale" },
-  { email: "stores@company.demo", label: "مدير أراك ستورز", role: "stores" },
+  { email: "stores@company.demo", label: "م. طه الأهدل — أراك ستورز", role: "stores" },
   { email: "manager@company.demo", label: "مدير وحدة الأعمال", role: "dev_manager" },
   { email: "admin@company.demo", label: "مدير المنصة", role: "admin" },
 ];
