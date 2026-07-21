@@ -8,16 +8,16 @@
     "api/[...path].js": {
       "maxDuration": 60
     },
-    "api/login.js": {
+    "api/staff-login.js": {
       "maxDuration": 30
     },
-    "api/me.js": {
+    "api/staff-me.js": {
       "maxDuration": 30
     }
   },
   "rewrites": [
-    { "source": "/api/auth/login", "destination": "/api/login" },
-    { "source": "/api/auth/me", "destination": "/api/me" },
+    { "source": "/api/auth/login", "destination": "/api/staff-login" },
+    { "source": "/api/auth/me", "destination": "/api/staff-me" },
     { "source": "/api/:path*", "destination": "/api/[...path]" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
