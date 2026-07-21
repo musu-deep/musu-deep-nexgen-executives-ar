@@ -4,7 +4,7 @@ import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
-import LoginPage from "./pages/LoginPage";
+import ExecutiveLoginPage from "./pages/ExecutiveLoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
@@ -56,7 +56,7 @@ function AppRoutes() {
     <BrowserRouter>
       <ArabicLocalization />
       <Routes>
-        <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
+        <Route path="/login" element={<PublicOnly><ExecutiveLoginPage /></PublicOnly>} />
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
