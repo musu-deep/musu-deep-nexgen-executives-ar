@@ -1,52 +1,38 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import api from "../lib/api";
+import { buildDailyData, loadOperationalSources } from "../lib/executiveData";
+import { useAuth } from "../contexts/AuthContext";
 import {
   AlertTriangle, CalendarDays, CheckCircle2, ClipboardList, FileText,
   Mic, Printer, RefreshCw, TrendingUp,
 } from "lucide-react";
 
-const EMPTY_REPORT = {
-  generated_at: new Date().toISOString(),
-  user: {},
-  ai_summary: "لا توجد بيانات تنفيذية متاحة حاليًا. تستمر المنصة في العمل بوضع الاستمرارية إلى حين استعادة الاتصال بمصدر البيانات.",
-  metrics: {
-    total_projects: 0,
-    active_projects: 0,
-    critical_projects: 0,
-    overdue_tasks: 0,
-    today_meetings: 0,
-    pending_requests: 0,
-    pending_voice_directives: 0,
-    avg_progress: 0,
-  },
-  critical_projects: [],
-  overdue_tasks: [],
-  today_meetings: [],
-  pending_requests: [],
-  pending_voice_directives: [],
-};
+const EMPTY_REPORT = buildDailyData({ projects: [], tasks: [], meetings: [], requests: [], user: {} });
 
 export default function ExecutiveDailyBriefPage() {
+  const { user } = useAuth();
   const [report, setReport] = useState(EMPTY_REPORT);
   const [loading, setLoading] = useState(true);
-  const [offlineMode, setOfflineMode] = useState(false);
+  const [sourceState, setSourceState] = useState("loading");
 
   const loadReport = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get("/executive-data", { params: { view: "daily" } });
-      setReport({ ...EMPTY_REPORT, ...(response.data || {}), metrics: { ...EMPTY_REPORT.metrics, ...(response.data?.metrics || {}) } });
-      setOfflineMode(false);
+      const sources = await loadOperationalSources(api);
+      if (!sources.isLive) throw new Error("Operational sources unavailable");
+      setReport(buildDailyData({ ...sources, user }));
+      setSourceState(sources.isPartial ? "partial" : "live");
+      if (sources.isPartial) toast.warning("تم إعداد الموجز من المصادر المتاحة؛ بعض الوحدات لم تستجب.");
     } catch (error) {
       console.error("Executive daily brief load failed", error);
-      setReport(EMPTY_REPORT);
-      setOfflineMode(true);
-      toast.warning("تعذر الاتصال بالمصدر التنفيذي؛ تم عرض موجز الاستمرارية.");
+      setReport(buildDailyData({ projects: [], tasks: [], meetings: [], requests: [], user }));
+      setSourceState("offline");
+      toast.error("تعذر قراءة التحديثات التنفيذية الفعلية.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => { loadReport(); }, [loadReport]);
 
@@ -64,15 +50,15 @@ export default function ExecutiveDailyBriefPage() {
           <p className="text-slate-500 text-sm mt-2">{generatedAt.toLocaleDateString("ar", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {offlineMode && <span className="px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 text-xs">وضع الاستمرارية</span>}
+          <SourceBadge state={sourceState} />
           <button onClick={loadReport} className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-200 hover:text-yellow-300 flex items-center gap-2 text-sm font-bold"><RefreshCw size={16}/> تحديث</button>
           <button onClick={() => window.print()} className="px-5 py-3 rounded-xl bg-yellow-500 text-black flex items-center gap-2 text-sm font-black"><Printer size={16}/> طباعة أو PDF</button>
         </div>
       </section>
 
       <section className="glass-card p-6 border-yellow-500/25 bg-yellow-500/[0.025]">
-        <div className="flex items-center justify-between gap-4 mb-4"><div className="flex items-center gap-2"><CheckCircle2 size={18} className="text-yellow-400"/><h2 className="font-heading text-xl font-black">الخلاصة التنفيذية</h2></div><span className="text-[10px] px-2 py-1 rounded-lg bg-yellow-500/10 text-yellow-300">جاهز للمراجعة</span></div>
-        <p className="text-lg leading-9 text-slate-200 whitespace-pre-wrap">{report.ai_summary || EMPTY_REPORT.ai_summary}</p>
+        <div className="flex items-center justify-between gap-4 mb-4"><div className="flex items-center gap-2"><CheckCircle2 size={18} className="text-yellow-400"/><h2 className="font-heading text-xl font-black">الخلاصة التنفيذية</h2></div><span className="text-[10px] px-2 py-1 rounded-lg bg-yellow-500/10 text-yellow-300">محدث من النظام</span></div>
+        <p className="text-lg leading-9 text-slate-200 whitespace-pre-wrap">{report.ai_summary}</p>
       </section>
 
       <section className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
@@ -97,6 +83,12 @@ export default function ExecutiveDailyBriefPage() {
       </section>
     </div>
   );
+}
+
+function SourceBadge({ state }) {
+  if (state === "live") return <span className="px-3 py-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-xs">بيانات مباشرة</span>;
+  if (state === "partial") return <span className="px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 text-xs">بيانات جزئية</span>;
+  return <span className="px-3 py-2 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-xs">المصدر غير متاح</span>;
 }
 
 function Metric({ icon, label, value, tone = "text-slate-100" }) {
