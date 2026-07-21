@@ -1,90 +1,71 @@
 from __future__ import annotations
 
+import asyncio
 from urllib.parse import parse_qs
 
 from api.index import DEMO_PASSWORD, USERS, app as backend_app, core
 
 
-# Vercel may execute login and subsequent API requests in different cold
-# instances. Keep the signed session authoritative so authentication does not
-# depend on finding the same in-memory database record in another instance.
-core.HOSTED_USER_PROFILES = {
-    profile["email"].lower(): {
+HOSTED_USER_PROFILES = {
+    profile["email"].strip().lower(): {
         **profile,
+        "email": profile["email"].strip().lower(),
         "id": f"vercel_usr_{index:02d}",
         "active": True,
     }
     for index, profile in enumerate(USERS, start=1)
 }
 
-
-async def hosted_get_current_user(request):
-    token = request.cookies.get("access_token")
-    if not token:
-        authorization = request.headers.get("Authorization", "")
-        if authorization.startswith("Bearer "):
-            token = authorization[7:]
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    try:
-        payload = pyjwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "access":
-            raise HTTPException(status_code=401, detail="Invalid token type")
-
-        email = str(payload.get("email") or "").strip().lower()
-        hosted_profile = HOSTED_USER_PROFILES.get(email)
-        if hosted_profile:
-            return dict(hosted_profile)
-
-        user = await db.users.find_one(
-            {"id": payload.get("sub")},
-            {"_id": 0, "password_hash": 0},
-        )
-        if not user and email:
-            user = await db.users.find_one(
-                {"email": email},
-                {"_id": 0, "password_hash": 0},
-            )
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-        if not user.get("active", True):
-            raise HTTPException(status_code=403, detail="User inactive")
-        return user
-    except pyjwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except pyjwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+_directory_ready = False
+_directory_lock = asyncio.Lock()
+_password_hash: str | None = None
 
 
-# FastAPI dependencies keep a reference to the original function object.
-# Replacing its code updates every already-registered route consistently.
-core.get_current_user.__code__ = hosted_get_current_user.__code__
+async def ensure_hosted_directory() -> None:
+    """Seed deterministic users in every Vercel cold instance.
+
+    Vercel can execute login and subsequent API requests in different
+    serverless instances. The original backend validates a token by looking up
+    its subject ID in the local store, so every instance must use identical
+    user IDs before handling a request.
+    """
+    global _directory_ready, _password_hash
+    if _directory_ready:
+        return
+
+    async with _directory_lock:
+        if _directory_ready:
+            return
+
+        if _password_hash is None:
+            _password_hash = core.hash_password(DEMO_PASSWORD)
+
+        for email, stable_profile in HOSTED_USER_PROFILES.items():
+            database_profile = {
+                **stable_profile,
+                "email": email,
+                "password_hash": _password_hash,
+            }
+            existing = await core.db.users.find_one({"email": email})
+            if existing:
+                await core.db.users.update_one(
+                    {"email": email},
+                    {"$set": database_profile},
+                )
+            else:
+                await core.db.users.insert_one(
+                    {
+                        **database_profile,
+                        "created_at": core.now_iso(),
+                    }
+                )
+
+        _directory_ready = True
 
 
 @backend_app.on_event("startup")
-async def stabilize_hosted_users() -> None:
-    """Ensure every cold serverless instance uses the same user IDs."""
-    password_hash = core.hash_password(DEMO_PASSWORD)
-    for email, stable_profile in core.HOSTED_USER_PROFILES.items():
-        database_profile = {
-            **stable_profile,
-            "email": email,
-            "password_hash": password_hash,
-        }
-        existing = await core.db.users.find_one({"email": email})
-        if existing:
-            await core.db.users.update_one(
-                {"email": email},
-                {"$set": database_profile},
-            )
-        else:
-            await core.db.users.insert_one(
-                {
-                    **database_profile,
-                    "created_at": core.now_iso(),
-                }
-            )
+async def stabilize_hosted_users_on_startup() -> None:
+    await ensure_hosted_directory()
 
 
 class UnifiedApiGateway:
@@ -93,6 +74,11 @@ class UnifiedApiGateway:
 
     async def __call__(self, scope, receive, send):
         if scope.get("type") == "http":
+            # Do not rely solely on lifespan/startup hooks in a serverless
+            # runtime. Guarantee deterministic identities before every first
+            # request handled by a cold instance.
+            await ensure_hosted_directory()
+
             query = parse_qs(scope.get("query_string", b"").decode("utf-8"))
             route = (query.get("route") or [""])[0].strip("/")
             if route:
@@ -101,6 +87,7 @@ class UnifiedApiGateway:
                 rewritten["path"] = path
                 rewritten["raw_path"] = path.encode("utf-8")
                 scope = rewritten
+
         await self.target(scope, receive, send)
 
 
