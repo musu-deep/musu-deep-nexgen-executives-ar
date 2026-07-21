@@ -23,6 +23,7 @@ import SettingsPage from "./pages/SettingsPage";
 import DailyReportPage from "./pages/DailyReportPage";
 import AgentLoungePage from "./pages/AgentLoungePage";
 import OfficeUnitPage from "./pages/OfficeUnitPage";
+import QualityControlPage from "./pages/QualityControlPage";
 import AppLayout from "./components/AppLayout";
 import ArabicLocalization from "./components/ArabicLocalization";
 import "./App.css";
@@ -67,6 +68,7 @@ function AppRoutes() {
           <Route path="/legal-affairs" element={<OfficeUnitPage unit="legal" />} />
           <Route path="/presidential-advisor" element={<ProtectedRoute roles={["admin", "ceo"]}><OfficeUnitPage unit="advisor" /></ProtectedRoute>} />
           <Route path="/human-resources" element={<OfficeUnitPage unit="hr" />} />
+          <Route path="/quality-control" element={<QualityControlPage />} />
           <Route path="/meetings" element={<MeetingsPage />} />
           <Route path="/meeting-requests" element={<MeetingRequestsPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
