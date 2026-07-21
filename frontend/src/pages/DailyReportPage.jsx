@@ -44,7 +44,7 @@ export default function DailyReportPage() {
       <div className="flex items-end justify-between mb-6 flex-wrap gap-4 print:hidden">
         <div>
           <div className="text-xs tracking-[0.12em] text-yellow-500/80">التقرير التنفيذي اليومي</div>
-          <h1 className="font-heading text-4xl font-black mt-2 flex items-center gap-3"><FileText className="text-yellow-500"/> الموجز اليومي بالذكاء الاصطناعي</h1>
+          <h1 className="font-heading text-4xl font-black mt-2 flex items-center gap-3"><FileText className="text-yellow-500"/> الموجز التنفيذي اليومي</h1>
           <p className="text-slate-500 text-sm mt-1">{today}</p>
         </div>
         <div className="flex gap-2">
@@ -67,8 +67,8 @@ export default function DailyReportPage() {
 
       <div className="glass-card p-6 mb-5 border-yellow-500/30">
         <div className="flex items-center gap-2 mb-3">
-          <div className="px-2 py-1 rounded bg-yellow-500/15 text-yellow-300 text-[10px] tracking-wider">إحاطة ذكية</div>
-          <span className="text-sm text-slate-400">موجز تنفيذي عربي مهيأ لـGemini</span>
+          <div className="px-2 py-1 rounded bg-yellow-500/15 text-yellow-300 text-[10px] tracking-wider">إحاطة تنفيذية</div>
+          <span className="text-sm text-slate-400">موجز عربي مهيأ للمراجعة والاعتماد</span>
         </div>
         <p className="text-lg text-slate-100 leading-loose font-heading whitespace-pre-wrap">{report.ai_summary}</p>
       </div>
