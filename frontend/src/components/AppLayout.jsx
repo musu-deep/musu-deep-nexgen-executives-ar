@@ -6,6 +6,7 @@ import {
   LayoutDashboard, FolderKanban, ListChecks, BarChart3, Users,
   Shield, LogOut, Calendar, Video, FileArchive,
   Mic, MessageSquare, Bell, Settings, CalendarClock, FileText, BrainCircuit,
+  BriefcaseBusiness, Scale, UserRoundCog, UsersRound,
 } from "lucide-react";
 
 import NEXGEN_LOGO from "../assets/NEXGEN_EXECUTIVES.png";
@@ -16,6 +17,10 @@ const NAV = [
   { to: "/ai-lounge", icon: BrainCircuit, label: "مركز الوكلاء التنفيذيين", testId: "nav-ai-lounge", roles: ["admin", "ceo", "tracker"] },
   { to: "/projects", icon: FolderKanban, label: "المشروعات", testId: "nav-projects" },
   { to: "/tasks", icon: ListChecks, label: "المهام", testId: "nav-tasks" },
+  { to: "/executive-secretariat", icon: BriefcaseBusiness, label: "السكرتارية التنفيذية", testId: "nav-executive-secretariat" },
+  { to: "/presidential-advisor", icon: UserRoundCog, label: "المستشار الخاص للرئيس التنفيذي", testId: "nav-presidential-advisor", roles: ["admin", "ceo"] },
+  { to: "/legal-affairs", icon: Scale, label: "الشؤون القانونية", testId: "nav-legal-affairs", roles: ["admin", "ceo", "tracker", "vp_development", "vp_investment"] },
+  { to: "/human-resources", icon: UsersRound, label: "الموارد البشرية", testId: "nav-human-resources" },
   { to: "/calendar", icon: Calendar, label: "التقويم", testId: "nav-calendar" },
   { to: "/meetings", icon: Video, label: "الاجتماعات", testId: "nav-meetings" },
   { to: "/meeting-requests", icon: CalendarClock, label: "طلبات الاجتماعات", testId: "nav-meeting-requests" },
