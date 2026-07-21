@@ -7,9 +7,17 @@
   "functions": {
     "api/[...path].js": {
       "maxDuration": 60
+    },
+    "api/login.js": {
+      "maxDuration": 30
+    },
+    "api/me.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
+    { "source": "/api/auth/login", "destination": "/api/login" },
+    { "source": "/api/auth/me", "destination": "/api/me" },
     { "source": "/api/:path*", "destination": "/api/[...path]" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
