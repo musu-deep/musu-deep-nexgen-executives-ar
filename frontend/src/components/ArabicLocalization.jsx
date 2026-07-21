@@ -6,6 +6,7 @@ const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "CODE", "PRE", "TEXTAREA"]);
 const TRANSLATABLE_ATTRIBUTES = ["placeholder", "title", "aria-label", "data-empty-label"];
 
 const PROFESSIONAL_TERMS = [
+  [/الرقابة والجودة/g, "التفتيش والرقابة والجودة"],
   [/صالة الوكلاء الذكيين/g, "مركز الوكلاء التنفيذيين"],
   [/صالة الذكاء التنفيذي/g, "مركز العمليات التنفيذية"],
   [/صالة الوكلاء/g, "مركز الوكلاء التنفيذيين"],
