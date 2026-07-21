@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 const PROFILE_KEY = "arak_user_profile";
 const TOKEN_KEY = "arak_token";
 const SESSION_VERSION_KEY = "arak_session_version";
-const SESSION_VERSION = "hosted-api-unified-v3";
+const SESSION_VERSION = "hosted-api-unified-v4";
 
 function normalizeUser(user) {
   if (!user || typeof user !== "object") return user;
