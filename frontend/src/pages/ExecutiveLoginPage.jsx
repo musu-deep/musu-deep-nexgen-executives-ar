@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { formatApiError } from "../lib/api";
+import api, { formatApiError } from "../lib/api";
 import { toast } from "sonner";
 import {
   Shield,
@@ -13,38 +13,13 @@ import {
   X,
   Check,
   ChevronDown,
+  KeyRound,
+  RotateCcw,
+  LockKeyhole,
 } from "lucide-react";
 import NEXGEN_EXECUTIVES from "../assets/NEXGEN_EXECUTIVES.png";
 
 const DEMO_PASSWORD = String.fromCharCode(69, 120, 101, 99, 65, 103, 101, 110, 116, 50, 48, 50, 54, 33);
-
-const ROLE_QUICK = [
-  { email: "ceo@company.demo", name: "الرئيس التنفيذي", title: "الرئيس التنفيذي", group: "القيادة التنفيذية", role: "ceo" },
-  { email: "development@company.demo", name: "نائب الرئيس التنفيذي للتنمية", title: "قطاع التنمية", group: "القيادة التنفيذية", role: "vp_development" },
-  { email: "investment@company.demo", name: "نائب الرئيس التنفيذي للاستثمار", title: "قطاع الاستثمار", group: "القيادة التنفيذية", role: "vp_investment" },
-  { email: "followup@company.demo", name: "المتابعة التنفيذية", title: "مكتب الرئيس التنفيذي", group: "مكتب الرئيس التنفيذي", role: "tracker" },
-  { email: "secretariat@company.demo", name: "خالد العوبثاني", title: "السكرتارية التنفيذية", group: "مكتب الرئيس التنفيذي", role: "secretariat" },
-  { email: "hr@company.demo", name: "محمد السقاف", title: "الموارد البشرية", group: "الإدارات المساندة", role: "human-resources" },
-  { email: "finance@company.demo", name: "محمد السيمت أبو إياد", title: "المدير المالي", group: "الإدارات المساندة", role: "finance" },
-  { email: "quality@company.demo", name: "عاصم الملاحمة", title: "الرقابة والجودة", group: "الإدارات المساندة", role: "quality-control" },
-  { email: "steel.factory@company.demo", name: "سامر الملاحمة", title: "مصنع الحديد", group: "المصانع والعمليات", role: "steel-factory" },
-  { email: "commercial@company.demo", name: "م. محمد شكاك", title: "المشتريات والمستودعات", group: "المصانع والعمليات", role: "commercial" },
-  { email: "factory@company.demo", name: "م. عبد الرحمن الحسام", title: "المصنع وأراك الوطنية", group: "المصانع والعمليات", role: "factory" },
-  { email: "technical.office@company.demo", name: "م. إسلام محمد", title: "المكتب الفني", group: "المصانع والعمليات", role: "technical-office" },
-  { email: "wholesale@company.demo", name: "مدير مبيعات الجملة", title: "مبيعات الجملة", group: "المبيعات والمتاجر", role: "wholesale" },
-  { email: "stores@company.demo", name: "م. طه الأهدل", title: "أراك ستورز", group: "المبيعات والمتاجر", role: "stores" },
-  { email: "manager@company.demo", name: "مدير وحدة الأعمال", title: "العمليات والتنفيذ", group: "الإدارات المساندة", role: "dev_manager" },
-  { email: "admin@company.demo", name: "مدير المنصة", title: "إدارة المنصة", group: "إدارة المنصة", role: "admin" },
-];
-
-const GROUP_ORDER = [
-  "القيادة التنفيذية",
-  "مكتب الرئيس التنفيذي",
-  "الإدارات المساندة",
-  "المصانع والعمليات",
-  "المبيعات والمتاجر",
-  "إدارة المنصة",
-];
 
 export default function ExecutiveLoginPage() {
   const { login } = useAuth();
@@ -55,25 +30,20 @@ export default function ExecutiveLoginPage() {
   const [err, setErr] = useState("");
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [accountQuery, setAccountQuery] = useState("");
+  const [groupCode, setGroupCode] = useState("");
+  const [groupLoading, setGroupLoading] = useState(false);
+  const [groupError, setGroupError] = useState("");
+  const [groupInfo, setGroupInfo] = useState(null);
+  const [groupAccounts, setGroupAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState(null);
 
-  const selectedAccount = useMemo(
-    () => ROLE_QUICK.find((account) => account.email === email),
-    [email],
-  );
-
-  const groupedAccounts = useMemo(() => {
+  const filteredAccounts = useMemo(() => {
     const normalized = accountQuery.trim().toLowerCase();
-    return GROUP_ORDER.map((group) => ({
-      group,
-      accounts: ROLE_QUICK.filter((account) => {
-        if (account.group !== group) return false;
-        if (!normalized) return true;
-        return `${account.name} ${account.title} ${account.email} ${account.group}`
-          .toLowerCase()
-          .includes(normalized);
-      }),
-    })).filter((section) => section.accounts.length > 0);
-  }, [accountQuery]);
+    if (!normalized) return groupAccounts;
+    return groupAccounts.filter((account) =>
+      `${account.name} ${account.title} ${account.email}`.toLowerCase().includes(normalized),
+    );
+  }, [accountQuery, groupAccounts]);
 
   const copy = {
     secure: "منصة التشغيل التنفيذي",
@@ -95,7 +65,41 @@ export default function ExecutiveLoginPage() {
     ],
   };
 
+  const resetGroup = () => {
+    setGroupInfo(null);
+    setGroupAccounts([]);
+    setSelectedAccount(null);
+    setEmail("");
+    setAccountQuery("");
+    setGroupCode("");
+    setGroupError("");
+  };
+
+  const unlockGroup = async (event) => {
+    event.preventDefault();
+    setGroupError("");
+    const normalized = groupCode.replace(/\D/g, "");
+    if (normalized.length < 4) {
+      setGroupError("أدخل معرف المجموعة المكوّن من أربعة أرقام على الأقل");
+      return;
+    }
+
+    setGroupLoading(true);
+    try {
+      const response = await api.post("/auth/group-accounts", { code: normalized });
+      setGroupInfo(response.data?.group || null);
+      setGroupAccounts(Array.isArray(response.data?.accounts) ? response.data.accounts : []);
+      setAccountQuery("");
+      setGroupCode("");
+    } catch (error) {
+      setGroupError(formatApiError(error?.response?.data?.detail) || "تعذر التحقق من معرف المجموعة");
+    } finally {
+      setGroupLoading(false);
+    }
+  };
+
   const selectAccount = (account) => {
+    setSelectedAccount(account);
     setEmail(account.email);
     setPassword(DEMO_PASSWORD);
     setAccountQuery("");
@@ -105,6 +109,11 @@ export default function ExecutiveLoginPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setErr("");
+    if (!selectedAccount && !email) {
+      setErr("اختر حساب الدخول أولًا باستخدام معرف المجموعة");
+      return;
+    }
+
     setLoading(true);
     try {
       await login(email, password);
@@ -172,10 +181,14 @@ export default function ExecutiveLoginPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-slate-100 truncate">
-                  {selectedAccount?.name || "اختر المستخدم أو الإدارة"}
+                  {selectedAccount?.name || "أدخل معرف المجموعة ثم اختر حسابك"}
                 </div>
                 <div className="text-[11px] text-slate-500 truncate">
-                  {selectedAccount ? `${selectedAccount.title} · ${selectedAccount.group}` : "بحث سريع ضمن الحسابات المعتمدة"}
+                  {selectedAccount
+                    ? `${selectedAccount.title} · ${groupInfo?.name || "المجموعة المعتمدة"}`
+                    : groupInfo
+                      ? `${groupInfo.name} · اختر أحد الحسابات المتاحة`
+                      : "لن تظهر أسماء المجموعات الأخرى أو أعضاؤها"}
                 </div>
               </div>
               <ChevronDown size={18} className="text-slate-500" />
@@ -185,7 +198,17 @@ export default function ExecutiveLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-xs text-slate-400 mb-2">{copy.email}</label>
-              <input data-testid="login-email-input" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@company.demo" className="w-full px-4 py-3 rounded-lg bg-[#0a0d14]/80 border border-white/10 focus:border-yellow-500/50 focus:outline-none focus:ring-1 focus:ring-yellow-500/30 text-slate-100 placeholder-slate-600 transition-colors text-left" dir="ltr" />
+              <input
+                data-testid="login-email-input"
+                type="email"
+                required
+                readOnly={Boolean(selectedAccount)}
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="يظهر بعد اختيار الحساب"
+                className="w-full px-4 py-3 rounded-lg bg-[#0a0d14]/80 border border-white/10 focus:border-yellow-500/50 focus:outline-none focus:ring-1 focus:ring-yellow-500/30 text-slate-100 placeholder-slate-600 transition-colors text-left read-only:text-slate-400"
+                dir="ltr"
+              />
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-2">{copy.password}</label>
@@ -199,7 +222,7 @@ export default function ExecutiveLoginPage() {
 
           <div className="mt-5 flex items-center justify-center gap-2 text-[10px] text-slate-600">
             <Shield size={12} />
-            الحسابات مصنفة حسب الوحدات التنظيمية
+            معرف المجموعة للتصفية والخصوصية، والتحقق النهائي بكلمة المرور أو واتساب
           </div>
         </div>
       </div>
@@ -209,42 +232,78 @@ export default function ExecutiveLoginPage() {
           <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-[#0b0f18] shadow-2xl overflow-hidden" onMouseDown={(event) => event.stopPropagation()}>
             <div className="p-5 border-b border-white/5 flex items-center justify-between gap-4">
               <div>
-                <div className="text-[11px] text-yellow-500/80 tracking-wider">دليل الحسابات</div>
-                <h3 className="font-heading text-xl font-black text-slate-100 mt-1">اختر حساب الدخول</h3>
+                <div className="text-[11px] text-yellow-500/80 tracking-wider">دليل الحسابات المحمي</div>
+                <h3 className="font-heading text-xl font-black text-slate-100 mt-1">
+                  {groupInfo ? groupInfo.name : "أدخل معرف مجموعتك"}
+                </h3>
               </div>
-              <button type="button" onClick={() => setSelectorOpen(false)} className="p-2 rounded-lg bg-white/5 text-slate-400 hover:text-white" aria-label="إغلاق">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-4 border-b border-white/5">
-              <div className="relative">
-                <Search size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  autoFocus
-                  value={accountQuery}
-                  onChange={(event) => setAccountQuery(event.target.value)}
-                  placeholder="ابحث بالاسم أو الإدارة أو البريد..."
-                  className="w-full pr-11 pl-10 py-3 rounded-xl bg-black/25 border border-white/10 text-sm outline-none focus:border-yellow-500/35"
-                />
-                {accountQuery && (
-                  <button type="button" onClick={() => setAccountQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
-                    <X size={15} />
+              <div className="flex items-center gap-2">
+                {groupInfo && (
+                  <button type="button" onClick={resetGroup} className="px-3 py-2 rounded-lg bg-white/5 text-slate-400 hover:text-yellow-300 text-xs flex items-center gap-2">
+                    <RotateCcw size={14} /> تغيير المجموعة
                   </button>
                 )}
+                <button type="button" onClick={() => setSelectorOpen(false)} className="p-2 rounded-lg bg-white/5 text-slate-400 hover:text-white" aria-label="إغلاق">
+                  <X size={18} />
+                </button>
               </div>
             </div>
 
-            <div className="max-h-[60vh] overflow-y-auto p-3">
-              {groupedAccounts.map((section) => (
-                <div key={section.group} className="mb-3 last:mb-0">
+            {!groupInfo ? (
+              <form onSubmit={unlockGroup} className="p-6">
+                <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 flex items-center justify-center mx-auto mb-4">
+                  <LockKeyhole size={28} />
+                </div>
+                <div className="text-center mb-6">
+                  <div className="font-heading text-lg font-black text-slate-100">معرف المجموعة التنظيمية</div>
+                  <p className="text-xs text-slate-500 mt-2">أدخل الرقم المعتمد لمجموعتك. لن تُعرض أي أسماء قبل التحقق منه.</p>
+                </div>
+                <div className="relative max-w-xs mx-auto">
+                  <KeyRound size={17} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    autoFocus
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={groupCode}
+                    onChange={(event) => setGroupCode(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                    placeholder="••••"
+                    className="w-full pr-11 pl-4 py-4 rounded-xl bg-black/30 border border-white/10 text-center text-2xl tracking-[0.45em] tabular-nums outline-none focus:border-yellow-500/40"
+                    dir="ltr"
+                  />
+                </div>
+                {groupError && <div className="max-w-xs mx-auto mt-3 text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2 text-center">{groupError}</div>}
+                <button type="submit" disabled={groupLoading || groupCode.length < 4} className="max-w-xs mx-auto mt-5 w-full py-3 rounded-xl bg-yellow-500 text-black font-bold disabled:opacity-40 flex items-center justify-center gap-2">
+                  {groupLoading ? "جارٍ التحقق..." : <><Shield size={16} /> عرض حسابات المجموعة</>}
+                </button>
+              </form>
+            ) : (
+              <>
+                <div className="p-4 border-b border-white/5">
+                  <div className="relative">
+                    <Search size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      autoFocus
+                      value={accountQuery}
+                      onChange={(event) => setAccountQuery(event.target.value)}
+                      placeholder="ابحث داخل المجموعة بالاسم أو المسمى..."
+                      className="w-full pr-11 pl-10 py-3 rounded-xl bg-black/25 border border-white/10 text-sm outline-none focus:border-yellow-500/35"
+                    />
+                    {accountQuery && (
+                      <button type="button" onClick={() => setAccountQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                        <X size={15} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="max-h-[60vh] overflow-y-auto p-3">
                   <div className="px-3 py-2 text-[10px] tracking-wider text-slate-500 flex items-center justify-between">
-                    <span>{section.group}</span>
-                    <span className="tabular-nums">{section.accounts.length}</span>
+                    <span>الحسابات المتاحة في {groupInfo.name}</span>
+                    <span className="tabular-nums">{filteredAccounts.length}</span>
                   </div>
                   <div className="space-y-1">
-                    {section.accounts.map((account) => {
-                      const selected = account.email === email;
+                    {filteredAccounts.map((account) => {
+                      const selected = account.email === selectedAccount?.email;
                       return (
                         <button
                           key={account.email}
@@ -256,7 +315,7 @@ export default function ExecutiveLoginPage() {
                               : "bg-white/[0.02] border-transparent hover:bg-white/[0.05] hover:border-white/10"
                           }`}
                         >
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${selected ? "bg-yellow-500 text-black" : "bg-white/5 text-slate-300"}`}>
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold ${selected ? "bg-yellow-500 text-black" : "bg-white/5 text-slate-300"}`}>
                             {account.name?.[0] || "؟"}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -269,16 +328,16 @@ export default function ExecutiveLoginPage() {
                       );
                     })}
                   </div>
-                </div>
-              ))}
 
-              {groupedAccounts.length === 0 && (
-                <div className="py-12 text-center text-slate-500">
-                  <Search size={28} className="mx-auto mb-3 opacity-50" />
-                  لا توجد حسابات مطابقة للبحث.
+                  {filteredAccounts.length === 0 && (
+                    <div className="py-12 text-center text-slate-500">
+                      <Search size={28} className="mx-auto mb-3 opacity-50" />
+                      لا توجد حسابات مطابقة داخل هذه المجموعة.
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}
