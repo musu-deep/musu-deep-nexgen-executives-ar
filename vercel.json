@@ -22,9 +22,13 @@
     },
     "api/otp-verify.js": {
       "maxDuration": 30
+    },
+    "api/group-accounts.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
+    { "source": "/api/auth/group-accounts", "destination": "/api/group-accounts" },
     { "source": "/api/auth/otp/request", "destination": "/api/otp-request" },
     { "source": "/api/auth/otp/verify", "destination": "/api/otp-verify" },
     { "source": "/api/auth/finance-login", "destination": "/api/finance-login" },
