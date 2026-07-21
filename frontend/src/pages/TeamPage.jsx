@@ -15,7 +15,7 @@ const APPROVED_EMPLOYEES = [
   { id: "usr_secretariat", email: "secretariat@company.demo", name: "خالد العوبثاني", role: "tracker", title: "مسؤول السكرتارية التنفيذية", department: "السكرتارية التنفيذية", active: true },
   { id: "usr_hr", email: "hr@company.demo", name: "محمد السقاف", role: "dev_manager", title: "مسؤول الموارد البشرية", department: "الموارد البشرية", active: true },
   { id: "usr_finance", email: "finance@company.demo", name: "محمد السيمت أبو إياد", role: "dev_manager", title: "المدير المالي", department: "الإدارة المالية", active: true },
-  { id: "usr_quality", email: "quality@company.demo", name: "عاصم الملاحمة", role: "dev_manager", title: "مدير الرقابة والجودة", department: "الرقابة والجودة", active: true },
+  { id: "usr_quality", email: "quality@company.demo", name: "عاصم الملاحمة", role: "dev_manager", title: "مدير التفتيش والرقابة والجودة", department: "التفتيش والرقابة والجودة", active: true },
   { id: "usr_steel_factory", email: "steel.factory@company.demo", name: "سامر الملاحمة", role: "dev_manager", title: "مدير مصنع الحديد", department: "مصنع الحديد", active: true },
   { id: "usr_commercial", email: "commercial@company.demo", name: "م. محمد شكاك", role: "dev_manager", title: "مسؤول المشتريات والمستودعات والشؤون التجارية", department: "المشتريات والمستودعات", active: true },
   { id: "usr_factory", email: "factory@company.demo", name: "م. عبد الرحمن الحسام", role: "dev_manager", title: "مدير أراك الوطنية والمصنع", department: "المصنع وأراك الوطنية", active: true },
