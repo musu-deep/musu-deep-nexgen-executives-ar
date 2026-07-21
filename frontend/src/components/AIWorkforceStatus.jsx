@@ -25,10 +25,10 @@ export default function AIWorkforceStatus() {
 
   const agents = data?.agents || [
     { name: "مكتب الرئيس التنفيذي", tone: "emerald", status: "نشط" },
-    { name: "وكيل ذكاء المشروعات", tone: "emerald", status: "قيد المراقبة" },
-    { name: "وكيل ذكاء الاجتماعات", tone: "emerald", status: "قيد المراقبة" },
+    { name: "وكيل تحليل المشروعات", tone: "emerald", status: "قيد المراقبة" },
+    { name: "وكيل تحليل الاجتماعات", tone: "emerald", status: "قيد المراقبة" },
     { name: "وكيل مراقبة المخاطر", tone: "amber", status: "يحتاج إلى انتباه" },
-    { name: "وكيل ذكاء المستندات", tone: "emerald", status: "نشط" },
+    { name: "وكيل تحليل المستندات", tone: "emerald", status: "نشط" },
     { name: "وكيل التقارير", tone: "emerald", status: "نشط" },
     { name: "وكيل الإحاطة التنفيذية", tone: "emerald", status: "نشط" },
   ];
@@ -37,9 +37,9 @@ export default function AIWorkforceStatus() {
     <Link to="/ai-lounge" className="glass-card p-6 block hover:border-yellow-500/30 transition-all mb-6 border-yellow-500/20" dir="rtl">
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
-          <div className="text-xs tracking-[0.12em] text-yellow-500/80 flex items-center gap-2"><Bot size={15}/> حالة القوى العاملة الذكية</div>
-          <h3 className="font-heading text-2xl font-black mt-2">الوكلاء التنفيذيون يعملون خلف المنصة</h3>
-          <p className="text-sm text-slate-500 mt-1">اضغط لدخول صالة الوكلاء واستعراض القوى العاملة المؤسسية النشطة.</p>
+          <div className="text-xs tracking-[0.12em] text-yellow-500/80 flex items-center gap-2"><Bot size={15}/> حالة منظومة الوكلاء التنفيذيين</div>
+          <h3 className="font-heading text-2xl font-black mt-2">الوكلاء التنفيذيون يدعمون مسارات العمل عبر المنصة</h3>
+          <p className="text-sm text-slate-500 mt-1">اضغط لفتح مركز الوكلاء واستعراض وحدات العمل المؤسسية النشطة.</p>
         </div>
         <div className="w-10 h-10 rounded-xl bg-yellow-500/10 text-yellow-300 flex items-center justify-center"><ChevronLeft size={20}/></div>
       </div>
