@@ -16,9 +16,17 @@
     },
     "api/finance-login.js": {
       "maxDuration": 30
+    },
+    "api/otp-request.js": {
+      "maxDuration": 30
+    },
+    "api/otp-verify.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
+    { "source": "/api/auth/otp/request", "destination": "/api/otp-request" },
+    { "source": "/api/auth/otp/verify", "destination": "/api/otp-verify" },
     { "source": "/api/auth/finance-login", "destination": "/api/finance-login" },
     { "source": "/api/auth/login", "destination": "/api/staff-login" },
     { "source": "/api/auth/me", "destination": "/api/staff-me" },
