@@ -5,8 +5,49 @@ import { translateExtraArabicText } from "../i18n/ar-extra";
 const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "CODE", "PRE", "TEXTAREA"]);
 const TRANSLATABLE_ATTRIBUTES = ["placeholder", "title", "aria-label", "data-empty-label"];
 
+const PROFESSIONAL_TERMS = [
+  [/صالة الوكلاء الذكيين/g, "مركز الوكلاء التنفيذيين"],
+  [/صالة الذكاء التنفيذي/g, "مركز العمليات التنفيذية"],
+  [/صالة الوكلاء/g, "مركز الوكلاء التنفيذيين"],
+  [/القوى العاملة الذكية/g, "منظومة الوكلاء التنفيذيين"],
+  [/الذكاء الاصطناعي/g, "الأتمتة والتحليل المؤسسي"],
+  [/الذكاء التنفيذي/g, "التحليل التنفيذي"],
+  [/التنسيق الذكي/g, "التنسيق التنفيذي"],
+  [/التنقل الذكي/g, "مركز الأوامر التنفيذية"],
+  [/رادار المخاطر الذكي/g, "رادار المخاطر التنفيذي"],
+  [/رئيس الديوان الذكي/g, "رئيس الديوان الرقمي"],
+  [/وكيل ذكاء المشروعات/g, "وكيل تحليل المشروعات"],
+  [/وكيل ذكاء الاجتماعات/g, "وكيل تحليل الاجتماعات"],
+  [/وكيل ذكاء المستندات/g, "وكيل تحليل المستندات"],
+  [/محطة ذكاء المستندات/g, "مركز تحليل المستندات"],
+  [/ذكاء المشروعات/g, "تحليل المشروعات"],
+  [/ذكاء الاجتماعات/g, "تحليل الاجتماعات"],
+  [/ذكاء المستندات/g, "تحليل المستندات"],
+  [/الذكيين/g, "التنفيذيين"],
+  [/الذكيات/g, "المتقدمات"],
+  [/الذكية/g, "المتقدمة"],
+  [/الذكي/g, "الرقمي"],
+  [/ذكاء/g, "تحليل"],
+  [/الذكاء/g, "التحليل"],
+  [/صالة/g, "مركز"],
+  [/\bArtificial Intelligence\b/gi, "Advanced Operations"],
+  [/\bExecutive Intelligence\b/gi, "Executive Analysis"],
+  [/\bIntelligence\b/gi, "Analysis"],
+  [/\bIntelligent\b/gi, "Advanced"],
+  [/\bSmart\b/gi, "Professional"],
+  [/\bAI\b/g, "Executive"],
+];
+
+function professionalize(value) {
+  if (typeof value !== "string") return value;
+  return PROFESSIONAL_TERMS.reduce(
+    (result, [pattern, replacement]) => result.replace(pattern, replacement),
+    value,
+  );
+}
+
 function translate(value) {
-  return translateExtraArabicText(translateArabicText(value));
+  return professionalize(translateExtraArabicText(translateArabicText(value)));
 }
 
 function localizeTextNode(node) {
