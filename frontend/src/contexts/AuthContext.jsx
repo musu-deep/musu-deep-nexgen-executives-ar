@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 const PROFILE_KEY = "arak_user_profile";
 const TOKEN_KEY = "arak_token";
 const SESSION_VERSION_KEY = "arak_session_version";
-const SESSION_VERSION = "hosted-api-unified-v2";
+const SESSION_VERSION = "hosted-api-unified-v3";
 
 function normalizeUser(user) {
   if (!user || typeof user !== "object") return user;
@@ -15,20 +15,15 @@ function normalizeUser(user) {
   return normalized;
 }
 
-function readCachedProfile() {
-  try {
-    const value = localStorage.getItem(PROFILE_KEY);
-    return value ? normalizeUser(JSON.parse(value)) : null;
-  } catch {
-    return null;
-  }
+function clearStoredSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(PROFILE_KEY);
 }
 
 function upgradeStoredSession() {
   const currentVersion = localStorage.getItem(SESSION_VERSION_KEY);
   if (currentVersion === SESSION_VERSION) return;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(PROFILE_KEY);
+  clearStoredSession();
   localStorage.setItem(SESSION_VERSION_KEY, SESSION_VERSION);
 }
 
@@ -41,8 +36,6 @@ export const AuthProvider = ({ children }) => {
     upgradeStoredSession();
 
     const token = localStorage.getItem(TOKEN_KEY);
-    const cachedProfile = readCachedProfile();
-
     if (!token) {
       setUser(false);
       setLoading(false);
@@ -53,27 +46,40 @@ export const AuthProvider = ({ children }) => {
       .then((res) => {
         if (cancelled) return;
         const profile = normalizeUser(res.data.user);
+        if (!profile) throw new Error("Missing verified profile");
         setUser(profile);
         localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
       })
       .catch(() => {
         if (!cancelled) {
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(PROFILE_KEY);
-          setUser(cachedProfile && token ? cachedProfile : false);
+          clearStoredSession();
+          setUser(false);
         }
       })
       .finally(() => !cancelled && setLoading(false));
 
-    return () => { cancelled = true; };
+    const handleExpiredSession = () => {
+      clearStoredSession();
+      setUser(false);
+      setLoading(false);
+    };
+    window.addEventListener("arak:session-expired", handleExpiredSession);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("arak:session-expired", handleExpiredSession);
+    };
   }, []);
 
   const acceptSession = (payload) => {
     const profile = normalizeUser(payload?.user);
-    if (payload?.access_token) localStorage.setItem(TOKEN_KEY, payload.access_token);
-    if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    if (!payload?.access_token || !profile) {
+      throw new Error("لم يتم إنشاء جلسة دخول مكتملة");
+    }
+    localStorage.setItem(TOKEN_KEY, payload.access_token);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     localStorage.setItem(SESSION_VERSION_KEY, SESSION_VERSION);
-    setUser(profile || false);
+    setUser(profile);
     return profile;
   };
 
@@ -85,8 +91,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try { await api.post("/auth/logout"); } catch {}
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(PROFILE_KEY);
+    clearStoredSession();
     localStorage.setItem(SESSION_VERSION_KEY, SESSION_VERSION);
     setUser(false);
   };
