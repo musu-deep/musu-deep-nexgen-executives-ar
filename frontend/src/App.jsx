@@ -27,6 +27,7 @@ import QualityControlPage from "./pages/QualityControlPage";
 import CameraMonitoringPage from "./pages/CameraMonitoringPage";
 import AppLayout from "./components/AppLayout";
 import ArabicLocalization from "./components/ArabicLocalization";
+import ExecutiveApiRouter from "./components/ExecutiveApiRouter";
 import "./App.css";
 
 function ProtectedRoute({ children, roles }) {
@@ -57,6 +58,7 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <ArabicLocalization />
+      <ExecutiveApiRouter />
       <Routes>
         <Route path="/login" element={<PublicOnly><ExecutiveLoginPage /></PublicOnly>} />
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
