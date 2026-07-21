@@ -5,17 +5,25 @@ const AuthContext = createContext(null);
 const PROFILE_KEY = "arak_user_profile";
 const FINANCE_EMAIL = "finance@company.demo";
 
+function normalizeUser(user) {
+  if (!user || typeof user !== "object") return user;
+  const normalized = { ...user };
+  if (normalized.department === "الرقابة والجودة") normalized.department = "التفتيش والرقابة والجودة";
+  if (normalized.title === "مدير الرقابة والجودة") normalized.title = "مدير التفتيش والرقابة والجودة";
+  return normalized;
+}
+
 function readCachedProfile() {
   try {
     const value = localStorage.getItem(PROFILE_KEY);
-    return value ? JSON.parse(value) : null;
+    return value ? normalizeUser(JSON.parse(value)) : null;
   } catch {
     return null;
   }
 }
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // null = loading, false = no user, object = user
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,8 +40,9 @@ export const AuthProvider = ({ children }) => {
     api.get("/auth/me")
       .then((res) => {
         if (cancelled) return;
-        setUser(res.data.user);
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(res.data.user));
+        const profile = normalizeUser(res.data.user);
+        setUser(profile);
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
       })
       .catch(() => {
         if (!cancelled) {
@@ -45,18 +54,19 @@ export const AuthProvider = ({ children }) => {
     return () => { cancelled = true; };
   }, []);
 
+  const acceptSession = (payload) => {
+    const profile = normalizeUser(payload?.user);
+    if (payload?.access_token) localStorage.setItem("arak_token", payload.access_token);
+    if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    setUser(profile || false);
+    return profile;
+  };
+
   const login = async (email, password) => {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const endpoint = normalizedEmail === FINANCE_EMAIL ? "/auth/finance-login" : "/auth/login";
     const res = await api.post(endpoint, { email: normalizedEmail, password });
-    if (res.data?.access_token) {
-      localStorage.setItem("arak_token", res.data.access_token);
-    }
-    if (res.data?.user) {
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(res.data.user));
-    }
-    setUser(res.data.user);
-    return res.data.user;
+    return acceptSession(res.data);
   };
 
   const logout = async () => {
@@ -67,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, acceptSession, logout }}>
       {children}
     </AuthContext.Provider>
   );
