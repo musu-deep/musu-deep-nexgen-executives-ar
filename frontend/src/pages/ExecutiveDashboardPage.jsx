@@ -1,27 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import api from "../lib/api";
+import { buildDashboardData, loadOperationalSources } from "../lib/executiveData";
 import { useAuth } from "../contexts/AuthContext";
 import {
   Activity, AlertTriangle, BarChart3, BriefcaseBusiness, CheckCircle2,
   FolderKanban, ListChecks, RefreshCw, TrendingUp, WalletCards,
 } from "lucide-react";
 
-const EMPTY_DASHBOARD = {
-  totals: {
-    projects: 0,
-    active_projects: 0,
-    completed_projects: 0,
-    tasks: 0,
-    overdue_tasks: 0,
-    avg_progress: 0,
-    total_budget: 0,
-  },
-  rag: { green: 0, amber: 0, red: 0, gray: 0 },
-  by_sector: [],
-  task_status: {},
-  recent_projects: [],
-};
+const EMPTY_DASHBOARD = buildDashboardData([], []);
 
 const SECTOR_LABELS = {
   development: "التنمية المؤسسية",
@@ -32,6 +19,15 @@ const SECTOR_LABELS = {
   corporate: "الخدمات المؤسسية",
 };
 
+const STATUS_LABELS = {
+  pending: "قيد الانتظار",
+  in_progress: "قيد التنفيذ",
+  awaiting_approval: "بانتظار الاعتماد",
+  delayed: "متأخرة",
+  completed: "مكتملة",
+  cancelled: "ملغاة",
+};
+
 function formatNumber(value) {
   return new Intl.NumberFormat("ar").format(Number(value || 0));
 }
@@ -40,19 +36,21 @@ export default function ExecutiveDashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState(EMPTY_DASHBOARD);
   const [loading, setLoading] = useState(true);
-  const [offlineMode, setOfflineMode] = useState(false);
+  const [sourceState, setSourceState] = useState("loading");
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get("/executive-data", { params: { view: "dashboard" } });
-      setData({ ...EMPTY_DASHBOARD, ...(response.data || {}) });
-      setOfflineMode(false);
+      const sources = await loadOperationalSources(api);
+      if (!sources.isLive) throw new Error("Operational sources unavailable");
+      setData(buildDashboardData(sources.projects, sources.tasks));
+      setSourceState(sources.isPartial ? "partial" : "live");
+      if (sources.isPartial) toast.warning("تم تحديث المؤشرات من المصادر المتاحة؛ بعض الوحدات لم تستجب.");
     } catch (error) {
       console.error("Executive dashboard load failed", error);
       setData(EMPTY_DASHBOARD);
-      setOfflineMode(true);
-      toast.warning("تعذر الاتصال بالمصدر التنفيذي؛ تم تشغيل وضع الاستمرارية.");
+      setSourceState("offline");
+      toast.error("تعذر قراءة بيانات المشروعات والمهام الفعلية.");
     } finally {
       setLoading(false);
     }
@@ -75,10 +73,10 @@ export default function ExecutiveDashboardPage() {
         <div>
           <div className="text-xs tracking-[0.14em] text-yellow-500/80">لوحة القيادة التنفيذية</div>
           <h1 className="font-heading text-4xl font-black mt-2">مرحبًا، {user?.name || "الرئيس التنفيذي"}</h1>
-          <p className="text-slate-500 text-sm mt-2">رؤية موحدة للمشروعات والمهام والأداء والمخاطر التنفيذية.</p>
+          <p className="text-slate-500 text-sm mt-2">رؤية مباشرة من بيانات المشروعات والمهام المسجلة في النظام.</p>
         </div>
         <div className="flex items-center gap-3">
-          {offlineMode && <span className="px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 text-xs">وضع الاستمرارية</span>}
+          <SourceBadge state={sourceState} />
           <button onClick={loadDashboard} className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-200 hover:text-yellow-300 flex items-center gap-2 text-sm font-bold"><RefreshCw size={16}/> تحديث البيانات</button>
         </div>
       </section>
@@ -123,7 +121,7 @@ export default function ExecutiveDashboardPage() {
       <section className="grid xl:grid-cols-3 gap-5">
         <div className="glass-card p-6">
           <h2 className="font-heading text-xl font-black mb-5">حالات المهام</h2>
-          <div className="space-y-3">{taskStatuses.length ? taskStatuses.map(([status, value]) => <div key={status} className="flex justify-between p-3 rounded-xl bg-white/[0.025] border border-white/5"><span className="text-slate-400">{status}</span><strong>{value}</strong></div>) : <EmptyState text="لا توجد مهام مصنفة حاليًا." />}</div>
+          <div className="space-y-3">{taskStatuses.length ? taskStatuses.map(([status, value]) => <div key={status} className="flex justify-between p-3 rounded-xl bg-white/[0.025] border border-white/5"><span className="text-slate-400">{STATUS_LABELS[status] || status}</span><strong>{value}</strong></div>) : <EmptyState text="لا توجد مهام مصنفة حاليًا." />}</div>
         </div>
         <div className="glass-card p-6 xl:col-span-2">
           <h2 className="font-heading text-xl font-black mb-5">آخر المشروعات</h2>
@@ -132,6 +130,12 @@ export default function ExecutiveDashboardPage() {
       </section>
     </div>
   );
+}
+
+function SourceBadge({ state }) {
+  if (state === "live") return <span className="px-3 py-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-xs">بيانات مباشرة</span>;
+  if (state === "partial") return <span className="px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 text-xs">بيانات جزئية</span>;
+  return <span className="px-3 py-2 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-xs">المصدر غير متاح</span>;
 }
 
 function Metric({ icon, label, value, tone = "text-slate-100" }) {
