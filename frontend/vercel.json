@@ -10,20 +10,9 @@
       "includeFiles": "api/backend/**",
       "excludeFiles": "{src/**,public/**,node_modules/**,dist/**}"
     },
-    "api/auth/login.py": {
-      "maxDuration": 30,
+    "api/unified.py": {
+      "maxDuration": 60,
       "includeFiles": "api/**"
-    },
-    "api/auth/me.py": {
-      "maxDuration": 30,
-      "includeFiles": "api/**"
-    },
-    "api/auth/finance-login.py": {
-      "maxDuration": 30,
-      "includeFiles": "api/**"
-    },
-    "api/auth/group-accounts.py": {
-      "maxDuration": 30
     },
     "api/group-accounts.py": {
       "maxDuration": 30
@@ -31,6 +20,12 @@
   },
   "rewrites": [
     { "source": "/api/auth/group-accounts", "destination": "/api/group-accounts" },
+    { "source": "/api/auth/login", "destination": "/api/unified?route=auth/login" },
+    { "source": "/api/auth/finance-login", "destination": "/api/unified?route=auth/finance-login" },
+    { "source": "/api/auth/me", "destination": "/api/unified?route=auth/me" },
+    { "source": "/api/auth/logout", "destination": "/api/unified?route=auth/logout" },
+    { "source": "/api/reports/daily-executive", "destination": "/api/unified?route=reports/daily-executive" },
+    { "source": "/api/:path*", "destination": "/api/unified?route=:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
