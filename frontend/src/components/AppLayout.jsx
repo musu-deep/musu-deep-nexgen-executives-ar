@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { ROLE_LABELS } from "../lib/api";
 import {
   LayoutDashboard, FolderKanban, ListChecks, BarChart3, Users,
-  Shield, LogOut, Calendar, Video, FileArchive,
+  Shield, LogOut, Calendar, Video, Camera, FileArchive,
   Mic, MessageSquare, Bell, Settings, CalendarClock, FileText, BrainCircuit,
   BriefcaseBusiness, Scale, UserRoundCog, UsersRound, ClipboardCheck,
 } from "lucide-react";
@@ -23,6 +23,7 @@ const NAV = [
   { to: "/legal-affairs", icon: Scale, label: "الشؤون القانونية", testId: "nav-legal-affairs", roles: ["admin", "ceo", "tracker", "vp_development", "vp_investment"] },
   { to: "/human-resources", icon: UsersRound, label: "الموارد البشرية", testId: "nav-human-resources" },
   { to: "/quality-control", icon: ClipboardCheck, label: "التفتيش والرقابة والجودة", testId: "nav-quality-control" },
+  { to: "/camera-monitoring", icon: Camera, label: "مركز مراقبة الكاميرات", testId: "nav-camera-monitoring" },
   { to: "/calendar", icon: Calendar, label: "التقويم", testId: "nav-calendar" },
   { to: "/meetings", icon: Video, label: "الاجتماعات", testId: "nav-meetings" },
   { to: "/meeting-requests", icon: CalendarClock, label: "طلبات الاجتماعات", testId: "nav-meeting-requests" },
