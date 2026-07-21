@@ -26,11 +26,11 @@ export default function LoginPage() {
   const [err, setErr] = useState("");
 
   const copy = {
-    secure: "منصة الذكاء التنفيذي",
+    secure: "منصة التشغيل التنفيذي",
     title: "مكتب الرئيس التنفيذي",
-    desc: "نظام تشغيل مؤسسي مدعوم بالذكاء الاصطناعي لإدارة ومتابعة العمل التنفيذي، وبناء الرؤية التشغيلية، ومتابعة الاستراتيجيات، ودعم قرارات القيادة.",
+    desc: "نظام تشغيل مؤسسي لإدارة ومتابعة العمل التنفيذي، وبناء الرؤية التشغيلية، ومتابعة الاستراتيجيات، ودعم قرارات القيادة.",
     sign: "تسجيل الدخول",
-    sub: "دخول آمن إلى منصة الذكاء التنفيذي",
+    sub: "دخول آمن إلى منصة التشغيل التنفيذي",
     email: "البريد الإلكتروني",
     password: "كلمة المرور",
     enter: "دخول المنصة",
@@ -40,7 +40,7 @@ export default function LoginPage() {
     toast: "مرحبًا بك في مكتب الرئيس التنفيذي",
     err: "تعذر تسجيل الدخول",
     features: [
-      { v: "Gemini", l: "الذكاء التنفيذي" },
+      { v: "WORKFLOW", l: "التنسيق التنفيذي" },
       { v: "MongoDB", l: "الذاكرة المؤسسية" },
       { v: "MCP", l: "تكامل الوكلاء" },
     ],
@@ -130,7 +130,7 @@ export default function LoginPage() {
 
             <div className="inline-flex items-center gap-2 text-yellow-400 text-xs tracking-[0.12em] mb-3">
               <Sparkles size={13} />
-              تشغيل محلي عبر وكلاء الذكاء الاصطناعي
+              تشغيل مؤسسي عبر وكلاء تنفيذيين متخصصين
             </div>
 
             <h2 className="font-heading text-2xl font-bold text-slate-50">
