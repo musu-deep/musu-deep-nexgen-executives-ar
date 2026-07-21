@@ -12,8 +12,13 @@ const ROLE_QUICK = [
   { email: "ceo@company.demo", label: "الرئيس التنفيذي", role: "ceo" },
   { email: "development@company.demo", label: "نائب الرئيس التنفيذي للتنمية", role: "vp_development" },
   { email: "investment@company.demo", label: "نائب الرئيس التنفيذي للاستثمار", role: "vp_investment" },
-  { email: "manager@company.demo", label: "مدير وحدة الأعمال", role: "dev_manager" },
   { email: "followup@company.demo", label: "المتابعة التنفيذية", role: "tracker" },
+  { email: "commercial@company.demo", label: "م. محمد شكاك — المشتريات والمستودعات", role: "commercial" },
+  { email: "factory@company.demo", label: "م. عبد الرحمن الحسام — المصنع وأراك الوطنية", role: "factory" },
+  { email: "projects@company.demo", label: "أ. هاني محمد — إدارة المشاريع", role: "projects" },
+  { email: "wholesale@company.demo", label: "مدير مبيعات الجملة", role: "wholesale" },
+  { email: "stores@company.demo", label: "مدير أراك ستورز", role: "stores" },
+  { email: "manager@company.demo", label: "مدير وحدة الأعمال", role: "dev_manager" },
   { email: "admin@company.demo", label: "مدير المنصة", role: "admin" },
 ];
 
@@ -201,7 +206,7 @@ export default function LoginPage() {
               {copy.quick}
             </div>
 
-            <div className="grid grid-cols-1 gap-1.5 max-h-44 overflow-y-auto pl-1">
+            <div className="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto pl-1">
               {ROLE_QUICK.map((role) => (
                 <button
                   key={role.email}
@@ -213,7 +218,7 @@ export default function LoginPage() {
                   }}
                   className="px-3 py-2 rounded-md text-xs bg-white/[0.02] hover:bg-yellow-500/5 hover:border-yellow-500/20 border border-white/5 text-slate-300 transition-colors flex items-center justify-between gap-2"
                 >
-                  <span className="font-medium">{role.label}</span>
+                  <span className="font-medium text-right">{role.label}</span>
                   <span className="text-slate-500 text-[10px] tabular-nums" dir="ltr">
                     {role.email}
                   </span>
