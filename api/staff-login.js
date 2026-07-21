@@ -12,6 +12,8 @@ const USERS = [
   { id: "usr_track", tokenId: "usr_track", email: "followup@company.demo", name: "المتابعة التنفيذية", role: "tracker", title: "مسؤول المتابعة التنفيذية", department: "مكتب الرئيس التنفيذي", active: true },
   { id: "usr_secretariat", tokenId: "usr_track", email: "secretariat@company.demo", name: "خالد العوبثاني", role: "tracker", title: "مسؤول السكرتارية التنفيذية", department: "السكرتارية التنفيذية", active: true },
   { id: "usr_hr", tokenId: "usr_mgr", email: "hr@company.demo", name: "محمد السقاف", role: "dev_manager", title: "مسؤول الموارد البشرية", department: "الموارد البشرية", active: true },
+  { id: "usr_quality", tokenId: "usr_mgr", email: "quality@company.demo", name: "عاصم الملاحمة", role: "dev_manager", title: "مدير الرقابة والجودة", department: "الرقابة والجودة", active: true },
+  { id: "usr_steel_factory", tokenId: "usr_mgr", email: "steel.factory@company.demo", name: "سامر الملاحمة", role: "dev_manager", title: "مدير مصنع الحديد", department: "مصنع الحديد", active: true },
   { id: "usr_commercial", tokenId: "usr_mgr", email: "commercial@company.demo", name: "م. محمد شكاك", role: "dev_manager", title: "مسؤول المشتريات والمستودعات والشؤون التجارية", department: "المشتريات والمستودعات", active: true },
   { id: "usr_factory", tokenId: "usr_mgr", email: "factory@company.demo", name: "م. عبد الرحمن الحسام", role: "dev_manager", title: "مدير أراك الوطنية والمصنع", department: "المصنع وأراك الوطنية", active: true },
   { id: "usr_technical_office", tokenId: "usr_mgr", email: "technical.office@company.demo", name: "م. إسلام محمد", role: "dev_manager", title: "مسؤول المكتب الفني", department: "المكتب الفني", active: true },
