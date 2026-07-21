@@ -5,7 +5,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import ExecutiveLoginPage from "./pages/ExecutiveLoginPage";
-import DashboardPage from "./pages/DashboardPage";
+import ExecutiveDashboardPage from "./pages/ExecutiveDashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TasksPage from "./pages/TasksPage";
@@ -20,14 +20,13 @@ import VoiceInputPage from "./pages/VoiceInputPage";
 import MessagesPage from "./pages/MessagesPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
-import DailyReportPage from "./pages/DailyReportPage";
+import ExecutiveDailyBriefPage from "./pages/ExecutiveDailyBriefPage";
 import AgentLoungePage from "./pages/AgentLoungePage";
 import OfficeUnitPage from "./pages/OfficeUnitPage";
 import QualityControlPage from "./pages/QualityControlPage";
 import CameraMonitoringPage from "./pages/CameraMonitoringPage";
 import AppLayout from "./components/AppLayout";
 import ArabicLocalization from "./components/ArabicLocalization";
-import ExecutiveApiRouter from "./components/ExecutiveApiRouter";
 import "./App.css";
 
 function ProtectedRoute({ children, roles }) {
@@ -58,12 +57,13 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <ArabicLocalization />
-      <ExecutiveApiRouter />
       <Routes>
         <Route path="/login" element={<PublicOnly><ExecutiveLoginPage /></PublicOnly>} />
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<ExecutiveDashboardPage />} />
+          <Route path="/daily-report" element={<ExecutiveDailyBriefPage />} />
+          <Route path="/camera-monitoring" element={<CameraMonitoringPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/tasks" element={<TasksPage />} />
@@ -72,7 +72,6 @@ function AppRoutes() {
           <Route path="/presidential-advisor" element={<ProtectedRoute roles={["admin", "ceo"]}><OfficeUnitPage unit="advisor" /></ProtectedRoute>} />
           <Route path="/human-resources" element={<OfficeUnitPage unit="hr" />} />
           <Route path="/quality-control" element={<QualityControlPage />} />
-          <Route path="/camera-monitoring" element={<CameraMonitoringPage />} />
           <Route path="/meetings" element={<MeetingsPage />} />
           <Route path="/meeting-requests" element={<MeetingRequestsPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
@@ -80,14 +79,11 @@ function AppRoutes() {
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/voice" element={<ProtectedRoute roles={["ceo", "admin"]}><VoiceInputPage /></ProtectedRoute>} />
-          <Route path="/daily-report" element={<DailyReportPage />} />
           <Route path="/ai-lounge" element={<AgentLoungePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/team" element={<TeamPage />} />
-          <Route path="/admin" element={
-            <ProtectedRoute roles={["admin"]}><AdminPage /></ProtectedRoute>
-          } />
+          <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminPage /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
