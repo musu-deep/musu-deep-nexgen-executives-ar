@@ -1,16 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   Brain,
   Building2,
+  Camera,
   CheckCircle2,
   Mail,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { toast } from "sonner";
 import api, { ROLE_LABELS } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
-import UserAvatar from "./UserAvatar";
+import UserAvatar, { getUserAvatarStorageKey } from "./UserAvatar";
 import { translateArabicText } from "../i18n/ar";
 import { translateExtraArabicText } from "../i18n/ar-extra";
 
@@ -19,8 +21,34 @@ function translate(value) {
   return translateExtraArabicText(translateArabicText(value));
 }
 
+function resizeProfilePhoto(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = reject;
+      image.onload = () => {
+        const size = 512;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext("2d");
+        const crop = Math.min(image.width, image.height);
+        const sourceX = Math.max((image.width - crop) / 2, 0);
+        const sourceY = Math.max((image.height - crop) / 2, 0);
+        context.drawImage(image, sourceX, sourceY, crop, crop, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.84));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ExecutiveIntelligenceCenter({ onSelectRisk }) {
   const { user } = useAuth();
+  const avatarInputRef = useRef(null);
   const [radar, setRadar] = useState(null);
   const [chief, setChief] = useState(null);
 
@@ -28,6 +56,29 @@ export default function ExecutiveIntelligenceCenter({ onSelectRisk }) {
     api.get("/ai/risk-radar").then((response) => setRadar(response.data)).catch(() => {});
     api.get("/ai/chief-of-staff").then((response) => setChief(response.data)).catch(() => {});
   }, []);
+
+  const updateAvatar = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("اختر ملف صورة صالحًا");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("حجم الصورة كبير؛ الحد الأعلى 8 ميجابايت");
+      return;
+    }
+
+    try {
+      const dataUrl = await resizeProfilePhoto(file);
+      localStorage.setItem(getUserAvatarStorageKey(user), dataUrl);
+      window.dispatchEvent(new CustomEvent("arak-avatar-updated"));
+      toast.success("تم تحديث الصورة الشخصية");
+    } catch {
+      toast.error("تعذر معالجة الصورة الشخصية");
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-6" dir="rtl">
@@ -42,7 +93,19 @@ export default function ExecutiveIntelligenceCenter({ onSelectRisk }) {
         </div>
 
         <div className="rounded-2xl bg-gradient-to-l from-yellow-500/[0.08] to-white/[0.025] border border-yellow-500/15 p-4 mb-4 flex flex-col md:flex-row md:items-center gap-4">
-          <UserAvatar user={user} size="lg" showStatus />
+          <div className="relative group">
+            <UserAvatar user={user} size="lg" showStatus />
+            <button
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-yellow-500 text-black border-2 border-[#0b0f18] flex items-center justify-center shadow-lg hover:bg-yellow-400 transition-colors"
+              title="تحديث الصورة الشخصية"
+              aria-label="تحديث الصورة الشخصية"
+            >
+              <Camera size={14} />
+            </button>
+            <input ref={avatarInputRef} type="file" accept="image/*" onChange={updateAvatar} className="hidden" />
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] tracking-wider text-yellow-400/80">المستخدم النشط</span>
