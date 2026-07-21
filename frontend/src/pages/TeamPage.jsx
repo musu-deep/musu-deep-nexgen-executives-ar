@@ -13,6 +13,24 @@ const ROLE_COLORS = {
 
 const APPROVED_EMPLOYEES = [
   {
+    id: "usr_secretariat",
+    email: "secretariat@company.demo",
+    name: "خالد العوبثاني",
+    role: "tracker",
+    title: "مسؤول السكرتارية التنفيذية",
+    department: "السكرتارية التنفيذية",
+    active: true,
+  },
+  {
+    id: "usr_hr",
+    email: "hr@company.demo",
+    name: "محمد السقاف",
+    role: "dev_manager",
+    title: "مسؤول الموارد البشرية",
+    department: "الموارد البشرية",
+    active: true,
+  },
+  {
     id: "usr_commercial",
     email: "commercial@company.demo",
     name: "م. محمد شكاك",
