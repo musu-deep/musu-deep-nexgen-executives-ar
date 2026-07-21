@@ -21,7 +21,7 @@ const INITIAL_RECORDS = [
     type: "تدقيق جودة",
     title: "مراجعة جودة المواد الخام الواردة إلى مصنع الحديد",
     owner: "عاصم الملاحمة",
-    department: "الرقابة والجودة",
+    department: "التفتيش والرقابة والجودة",
     dueDate: "2026-07-25",
     priority: "عاجل",
     status: "قيد المتابعة",
@@ -32,7 +32,7 @@ const INITIAL_RECORDS = [
     type: "تفتيش تشغيلي",
     title: "جولة رقابية على المستودعات وسلامة إجراءات التخزين",
     owner: "عاصم الملاحمة",
-    department: "الرقابة والجودة",
+    department: "التفتيش والرقابة والجودة",
     dueDate: "2026-07-28",
     priority: "مرتفع",
     status: "قيد المراجعة",
@@ -42,8 +42,8 @@ const INITIAL_RECORDS = [
     id: "qc-3",
     type: "إجراء تصحيحي",
     title: "إغلاق الملاحظات المتكررة في تقارير الجودة الشهرية",
-    owner: "إدارة الرقابة والجودة",
-    department: "الرقابة والجودة",
+    owner: "إدارة التفتيش والرقابة والجودة",
+    department: "التفتيش والرقابة والجودة",
     dueDate: "2026-08-03",
     priority: "مرتفع",
     status: "بانتظار الإجراء",
@@ -111,7 +111,7 @@ export default function QualityControlPage() {
         id: `qc-${Date.now()}`,
         ...form,
         owner: form.owner.trim() || "عاصم الملاحمة",
-        department: "الرقابة والجودة",
+        department: "التفتيش والرقابة والجودة",
         status: "بانتظار الإجراء",
         createdAt: new Date().toISOString(),
       },
@@ -141,9 +141,9 @@ export default function QualityControlPage() {
     <div data-testid="quality-control-page" dir="rtl">
       <div className="flex items-end justify-between mb-7 flex-wrap gap-4">
         <div>
-          <div className="text-xs tracking-[0.12em] text-yellow-500/80">الرقابة المؤسسية والامتثال التشغيلي</div>
+          <div className="text-xs tracking-[0.12em] text-yellow-500/80">التفتيش المؤسسي والامتثال التشغيلي</div>
           <h1 className="font-heading text-4xl font-black mt-2 flex items-center gap-3">
-            <ShieldCheck className="text-yellow-500" /> الرقابة والجودة
+            <ShieldCheck className="text-yellow-500" /> التفتيش والرقابة والجودة
           </h1>
           <p className="text-slate-500 text-sm mt-2 max-w-4xl leading-relaxed">
             إدارة التفتيش وتدقيق الجودة وحالات عدم المطابقة والإجراءات التصحيحية واعتماد الموردين، بقيادة عاصم الملاحمة.
@@ -171,7 +171,7 @@ export default function QualityControlPage() {
         </div>
         <div className="relative min-w-[280px]">
           <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="البحث في سجلات الرقابة والجودة..." className="w-full pr-10 pl-4 py-2.5 rounded-lg bg-black/20 border border-white/10 text-sm outline-none focus:border-yellow-500/35" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="البحث في سجلات التفتيش والرقابة والجودة..." className="w-full pr-10 pl-4 py-2.5 rounded-lg bg-black/20 border border-white/10 text-sm outline-none focus:border-yellow-500/35" />
         </div>
       </div>
 
@@ -208,7 +208,7 @@ export default function QualityControlPage() {
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-2xl glass-card p-6 border-yellow-500/20 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <div><div className="text-xs tracking-wider text-yellow-500/80">الرقابة والجودة</div><h2 className="font-heading text-2xl font-black mt-1">إضافة سجل رقابي</h2></div>
+              <div><div className="text-xs tracking-wider text-yellow-500/80">التفتيش والرقابة والجودة</div><h2 className="font-heading text-2xl font-black mt-1">إضافة سجل رقابي</h2></div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-lg bg-white/5 text-slate-400 hover:text-white"><X size={18} /></button>
             </div>
             <form onSubmit={createRecord} className="space-y-4">
