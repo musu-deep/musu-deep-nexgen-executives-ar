@@ -25,9 +25,9 @@ const NAV = [
   { to: "/meetings", icon: Video, label: "الاجتماعات", testId: "nav-meetings" },
   { to: "/meeting-requests", icon: CalendarClock, label: "طلبات الاجتماعات", testId: "nav-meeting-requests" },
   { to: "/documents", icon: FileArchive, label: "مركز تحليل المستندات", testId: "nav-documents" },
-  { to: "/messages", icon: MessageSquare, label: "مركز الاتصالات", testId: "nav-messages", roles: ["admin", "ceo", "tracker"] },
+  { to: "/messages", icon: MessageSquare, label: "مركز الاتصالات", testId: "nav-messages", roles: ["admin", "ceo", "tracker", "dev_manager"] },
   { to: "/voice", icon: Mic, label: "مركز الأوامر الصوتية", testId: "nav-voice", roles: ["ceo", "admin"] },
-  { to: "/reports", icon: BarChart3, label: "التقارير", testId: "nav-reports", roles: ["admin", "ceo", "tracker", "vp_development", "vp_investment"] },
+  { to: "/reports", icon: BarChart3, label: "التقارير", testId: "nav-reports", roles: ["admin", "ceo", "tracker", "vp_development", "vp_investment", "dev_manager"] },
   { to: "/team", icon: Users, label: "الفريق", testId: "nav-team", roles: ["admin", "ceo", "tracker"] },
   { to: "/notifications", icon: Bell, label: "الإشعارات", testId: "nav-notifications" },
   { to: "/settings", icon: Settings, label: "الإعدادات", testId: "nav-settings" },
@@ -96,7 +96,7 @@ export default function AppLayout() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold text-slate-100 truncate">{user?.name}</div>
-              <div className="text-[11px] text-slate-500 truncate">{ROLE_LABELS[user?.role]}</div>
+              <div className="text-[11px] text-slate-500 truncate">{user?.title || ROLE_LABELS[user?.role]}</div>
             </div>
             <button
               data-testid="logout-btn"
