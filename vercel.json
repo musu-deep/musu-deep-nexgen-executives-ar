@@ -8,33 +8,26 @@
     "api/[...path].js": {
       "maxDuration": 60
     },
-    "api/staff-login.js": {
+    "api/auth/login.js": {
       "maxDuration": 30
     },
-    "api/staff-me.js": {
+    "api/auth/me.js": {
       "maxDuration": 30
     },
-    "api/finance-login.js": {
+    "api/auth/finance-login.js": {
       "maxDuration": 30
     },
-    "api/otp-request.js": {
+    "api/auth/group-accounts.js": {
       "maxDuration": 30
     },
-    "api/otp-verify.js": {
+    "api/auth/otp/request.js": {
       "maxDuration": 30
     },
-    "api/group-accounts.js": {
+    "api/auth/otp/verify.js": {
       "maxDuration": 30
     }
   },
   "rewrites": [
-    { "source": "/api/auth/group-accounts", "destination": "/api/group-accounts" },
-    { "source": "/api/auth/otp/request", "destination": "/api/otp-request" },
-    { "source": "/api/auth/otp/verify", "destination": "/api/otp-verify" },
-    { "source": "/api/auth/finance-login", "destination": "/api/finance-login" },
-    { "source": "/api/auth/login", "destination": "/api/staff-login" },
-    { "source": "/api/auth/me", "destination": "/api/staff-me" },
-    { "source": "/api/:path*", "destination": "/api/[...path]" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
