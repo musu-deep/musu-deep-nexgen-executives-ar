@@ -3,6 +3,9 @@ import api from "../lib/api";
 
 const AuthContext = createContext(null);
 const PROFILE_KEY = "arak_user_profile";
+const TOKEN_KEY = "arak_token";
+const SESSION_VERSION_KEY = "arak_session_version";
+const SESSION_VERSION = "hosted-api-unified-v2";
 
 function normalizeUser(user) {
   if (!user || typeof user !== "object") return user;
@@ -21,13 +24,23 @@ function readCachedProfile() {
   }
 }
 
+function upgradeStoredSession() {
+  const currentVersion = localStorage.getItem(SESSION_VERSION_KEY);
+  if (currentVersion === SESSION_VERSION) return;
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(PROFILE_KEY);
+  localStorage.setItem(SESSION_VERSION_KEY, SESSION_VERSION);
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    const token = localStorage.getItem("arak_token");
+    upgradeStoredSession();
+
+    const token = localStorage.getItem(TOKEN_KEY);
     const cachedProfile = readCachedProfile();
 
     if (!token) {
@@ -45,7 +58,7 @@ export const AuthProvider = ({ children }) => {
       })
       .catch(() => {
         if (!cancelled) {
-          localStorage.removeItem("arak_token");
+          localStorage.removeItem(TOKEN_KEY);
           localStorage.removeItem(PROFILE_KEY);
           setUser(cachedProfile && token ? cachedProfile : false);
         }
@@ -57,8 +70,9 @@ export const AuthProvider = ({ children }) => {
 
   const acceptSession = (payload) => {
     const profile = normalizeUser(payload?.user);
-    if (payload?.access_token) localStorage.setItem("arak_token", payload.access_token);
+    if (payload?.access_token) localStorage.setItem(TOKEN_KEY, payload.access_token);
     if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    localStorage.setItem(SESSION_VERSION_KEY, SESSION_VERSION);
     setUser(profile || false);
     return profile;
   };
@@ -71,8 +85,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try { await api.post("/auth/logout"); } catch {}
-    localStorage.removeItem("arak_token");
+    localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(PROFILE_KEY);
+    localStorage.setItem(SESSION_VERSION_KEY, SESSION_VERSION);
     setUser(false);
   };
 
