@@ -13,9 +13,7 @@ const BACKEND_URL =
   configuredBackend ||
   (import.meta.env.DEV || isLocalPage ? "http://127.0.0.1:8001" : "");
 
-// في التطوير المحلي يستخدم المشغل VITE_BACKEND_URL تلقائيًا.
-// في الإنتاج لا يجوز الرجوع إلى localhost؛ عند غياب المتغير نستخدم /api
-// حتى تظهر مشكلة إعداد النشر بوضوح بدل محاولة الاتصال بجهاز الزائر.
+// في الإنتاج نستخدم API داخل النطاق نفسه افتراضيًا، ولا نطلب رابط باكند خارجي.
 export const API = BACKEND_URL ? `${BACKEND_URL}/api` : "/api";
 export const HAS_EXPLICIT_BACKEND = Boolean(configuredBackend);
 export const IS_LOCAL_API = API.includes("127.0.0.1") || API.includes("localhost");
@@ -39,10 +37,9 @@ export default api;
 
 export function formatApiError(detail) {
   if (detail == null) {
-    if (!import.meta.env.DEV && !HAS_EXPLICIT_BACKEND) {
-      return "لم يُضبط رابط الباكند في بيئة النشر. أضف VITE_BACKEND_URL ثم أعد النشر.";
-    }
-    return `تعذر الاتصال بالباكند على ${API}. شغّل start-local.cmd من مجلد المشروع.`;
+    return import.meta.env.DEV || isLocalPage
+      ? `تعذر الاتصال بخدمة المنصة على ${API}. تحقق من تشغيل الباكند المحلي.`
+      : "تعذر الوصول إلى خدمة المنصة في النسخة المنشورة. أعد تحميل الصفحة، وإن استمرت المشكلة فتحقق من اكتمال نشر وظائف API على Vercel.";
   }
   if (typeof detail === "string") return translateArabicText(detail.trim());
   if (Array.isArray(detail))
@@ -58,8 +55,11 @@ export function formatConnectionError(error) {
   if (error?.response?.data?.detail) {
     return formatApiError(error.response.data.detail);
   }
+  if (error?.response?.status === 404) {
+    return "مسار الخدمة غير متاح في النسخة المنشورة حاليًا. يلزم نشر باكند Vercel مع الواجهة.";
+  }
   if (error?.code === "ECONNABORTED") {
-    return "انتهت مهلة الاتصال بالباكند. تحقق من تشغيل مكتب الرئيس التنفيذي الرقمي.";
+    return "انتهت مهلة الاتصال بخدمة المنصة.";
   }
   return formatApiError(null);
 }
