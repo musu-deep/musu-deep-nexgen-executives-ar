@@ -13,9 +13,9 @@ const USERS = [
 
   { id: "usr_commercial", token_id: "usr_mgr", email: "commercial@company.demo", name: "م. محمد شكاك", role: "dev_manager", title: "مسؤول المشتريات والمستودعات والشؤون التجارية", department: "المشتريات والمستودعات", active: true },
   { id: "usr_factory", token_id: "usr_mgr", email: "factory@company.demo", name: "م. عبد الرحمن الحسام", role: "dev_manager", title: "مدير أراك الوطنية والمصنع", department: "المصنع وأراك الوطنية", active: true },
-  { id: "usr_projects", token_id: "usr_mgr", email: "projects@company.demo", name: "أ. هاني محمد", role: "dev_manager", title: "مسؤول فريق المشاريع وتسويق المشاريع", department: "إدارة المشاريع", active: true },
+  { id: "usr_technical_office", token_id: "usr_mgr", email: "technical.office@company.demo", name: "م. إسلام محمد", role: "dev_manager", title: "مسؤول المكتب الفني", department: "المكتب الفني", active: true },
   { id: "usr_wholesale", token_id: "usr_mgr", email: "wholesale@company.demo", name: "مدير مبيعات الجملة", role: "dev_manager", title: "مدير مبيعات الجملة", department: "مبيعات الجملة", active: true },
-  { id: "usr_stores", token_id: "usr_mgr", email: "stores@company.demo", name: "مدير أراك ستورز", role: "dev_manager", title: "مدير أراك ستورز والتجارة الإلكترونية", department: "أراك ستورز", active: true },
+  { id: "usr_stores", token_id: "usr_mgr", email: "stores@company.demo", name: "م. طه الأهدل", role: "dev_manager", title: "مدير أراك ستورز والتجارة الإلكترونية", department: "أراك ستورز", active: true },
 ];
 
 function bodyOf(request) {
