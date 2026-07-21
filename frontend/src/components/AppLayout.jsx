@@ -15,6 +15,7 @@ import UserAvatar from "./UserAvatar";
 const NAV = [
   { to: "/dashboard", icon: LayoutDashboard, label: "لوحة القيادة التنفيذية", testId: "nav-dashboard" },
   { to: "/daily-report", icon: FileText, label: "الموجز التنفيذي اليومي", testId: "nav-daily-report" },
+  { to: "/camera-monitoring", icon: Camera, label: "مركز مراقبة الكاميرات", testId: "nav-camera-monitoring" },
   { to: "/ai-lounge", icon: BrainCircuit, label: "مركز الوكلاء التنفيذيين", testId: "nav-ai-lounge", roles: ["admin", "ceo", "tracker"] },
   { to: "/projects", icon: FolderKanban, label: "المشروعات", testId: "nav-projects" },
   { to: "/tasks", icon: ListChecks, label: "المهام", testId: "nav-tasks" },
@@ -23,7 +24,6 @@ const NAV = [
   { to: "/legal-affairs", icon: Scale, label: "الشؤون القانونية", testId: "nav-legal-affairs", roles: ["admin", "ceo", "tracker", "vp_development", "vp_investment"] },
   { to: "/human-resources", icon: UsersRound, label: "الموارد البشرية", testId: "nav-human-resources" },
   { to: "/quality-control", icon: ClipboardCheck, label: "التفتيش والرقابة والجودة", testId: "nav-quality-control" },
-  { to: "/camera-monitoring", icon: Camera, label: "مركز مراقبة الكاميرات", testId: "nav-camera-monitoring" },
   { to: "/calendar", icon: Calendar, label: "التقويم", testId: "nav-calendar" },
   { to: "/meetings", icon: Video, label: "الاجتماعات", testId: "nav-meetings" },
   { to: "/meeting-requests", icon: CalendarClock, label: "طلبات الاجتماعات", testId: "nav-meeting-requests" },
