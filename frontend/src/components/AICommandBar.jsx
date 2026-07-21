@@ -21,7 +21,7 @@ export default function AICommandBar() {
         navigate(res.data.route, { state: { intent: res.data.intent } });
       }, 350);
     } catch {
-      setReply("تعذر تنفيذ الأمر الآن، لكن مساحة العمل الذكية جاهزة.");
+      setReply("تعذر تنفيذ الأمر الآن، لكن مركز الأوامر التنفيذي جاهز.");
     } finally {
       setLoading(false);
     }
@@ -33,8 +33,8 @@ export default function AICommandBar() {
         <div className="flex items-center gap-3 min-w-fit">
           <div className="w-10 h-10 rounded-xl bg-yellow-500/15 text-yellow-300 flex items-center justify-center"><Bot size={20}/></div>
           <div>
-            <div className="text-xs tracking-[0.12em] text-yellow-500/80">التنقل الذكي</div>
-            <div className="font-heading font-bold text-slate-100">اطلب من المنصة فتح أي مساحة أو إعداد موجز أو إجراء مراجعة</div>
+            <div className="text-xs tracking-[0.12em] text-yellow-500/80">مركز الأوامر التنفيذية</div>
+            <div className="font-heading font-bold text-slate-100">اطلب من المنصة فتح أي وحدة عمل أو إعداد موجز أو إجراء مراجعة</div>
           </div>
         </div>
         <input
@@ -45,7 +45,7 @@ export default function AICommandBar() {
           dir="rtl"
         />
         <button className="px-5 py-3 rounded-xl bg-yellow-500 text-black font-bold flex items-center justify-center gap-2" disabled={loading}>
-          <Send size={15}/> {loading ? "جارٍ التفكير" : "تنفيذ"}
+          <Send size={15}/> {loading ? "جارٍ التنفيذ" : "تنفيذ"}
         </button>
       </form>
       {reply && <div className="mt-3 text-xs text-slate-400">{reply}</div>}
