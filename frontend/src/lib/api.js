@@ -33,6 +33,30 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let sessionExpiryDispatched = false;
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const requestUrl = String(error?.config?.url || "");
+    const isLoginRequest = requestUrl.includes("/auth/login");
+    const hasStoredToken = Boolean(localStorage.getItem("arak_token"));
+
+    if (status === 401 && !isLoginRequest && hasStoredToken && !sessionExpiryDispatched) {
+      sessionExpiryDispatched = true;
+      localStorage.removeItem("arak_token");
+      localStorage.removeItem("arak_user_profile");
+      window.dispatchEvent(new Event("arak:session-expired"));
+      window.setTimeout(() => {
+        sessionExpiryDispatched = false;
+        if (window.location.pathname !== "/login") window.location.replace("/login");
+      }, 0);
+    }
+
+    return Promise.reject(error);
+  },
+);
+
 export default api;
 
 export function formatApiError(detail) {
@@ -54,6 +78,9 @@ export function formatApiError(detail) {
 export function formatConnectionError(error) {
   if (error?.response?.data?.detail) {
     return formatApiError(error.response.data.detail);
+  }
+  if (error?.response?.status === 401) {
+    return "انتهت جلسة الدخول. سجّل الدخول مرة أخرى.";
   }
   if (error?.response?.status === 404) {
     return "مسار الخدمة غير متاح في النسخة المنشورة حاليًا. يلزم نشر باكند Vercel مع الواجهة.";
