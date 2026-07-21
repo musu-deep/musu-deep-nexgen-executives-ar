@@ -5,8 +5,8 @@ const AuthContext = createContext(null);
 const PROFILE_KEY = "arak_user_profile";
 const TOKEN_KEY = "arak_token";
 const SESSION_VERSION_KEY = "arak_session_version";
-const SESSION_VERSION = "hosted-api-unified-v5";
-const BUILD_RELEASE = "ceo-office-auth-unified-2026-07-21-v5";
+const SESSION_VERSION = "hosted-api-stateless-v6";
+const BUILD_RELEASE = "ceo-office-stateless-auth-2026-07-21-v6";
 
 if (typeof window !== "undefined") {
   window.__ARAK_BUILD_RELEASE__ = BUILD_RELEASE;
