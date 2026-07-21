@@ -15,7 +15,6 @@ import UserAvatar from "./UserAvatar";
 const NAV = [
   { to: "/dashboard", icon: LayoutDashboard, label: "لوحة القيادة التنفيذية", testId: "nav-dashboard" },
   { to: "/daily-report", icon: FileText, label: "الموجز التنفيذي اليومي", testId: "nav-daily-report" },
-  { to: "/camera-monitoring", icon: Camera, label: "مركز مراقبة الكاميرات", testId: "nav-camera-monitoring" },
   { to: "/ai-lounge", icon: BrainCircuit, label: "مركز الوكلاء التنفيذيين", testId: "nav-ai-lounge", roles: ["admin", "ceo", "tracker"] },
   { to: "/projects", icon: FolderKanban, label: "المشروعات", testId: "nav-projects" },
   { to: "/tasks", icon: ListChecks, label: "المهام", testId: "nav-tasks" },
@@ -55,7 +54,32 @@ export default function AppLayout() {
           <div className="mt-3 text-center text-[11px] tracking-[0.12em] text-slate-500">مكتب الرئيس التنفيذي</div>
         </div>
 
-        <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+        <div className="px-3 pt-4">
+          <NavLink
+            to="/camera-monitoring"
+            data-testid="nav-camera-monitoring"
+            className={({ isActive }) =>
+              `group flex items-center gap-3 p-3.5 rounded-xl border transition-all ${
+                isActive
+                  ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-200 shadow-inner"
+                  : "bg-white/[0.025] border-white/5 text-slate-300 hover:bg-emerald-500/5 hover:border-emerald-500/20"
+              }`
+            }
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-300 flex items-center justify-center border border-emerald-500/15">
+              <Camera size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-black truncate">مركز مراقبة الكاميرات</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.8)]" />
+              </div>
+              <div className="text-[10px] text-slate-500 mt-1 truncate">الاتصال • التسجيل • الكفاءة • الصيانة</div>
+            </div>
+          </NavLink>
+        </div>
+
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {NAV.filter((item) => !item.roles || item.roles.includes(user?.role)).map(({ to, icon: Icon, label, testId }) => (
             <NavLink
               key={to}
