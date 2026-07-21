@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { AlertTriangle, Brain, CheckCircle2, Sparkles } from "lucide-react";
-import api from "../lib/api";
+import {
+  AlertTriangle,
+  Brain,
+  Building2,
+  CheckCircle2,
+  Mail,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import api, { ROLE_LABELS } from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
+import UserAvatar from "./UserAvatar";
 import { translateArabicText } from "../i18n/ar";
 import { translateExtraArabicText } from "../i18n/ar-extra";
 
@@ -10,6 +20,7 @@ function translate(value) {
 }
 
 export default function ExecutiveIntelligenceCenter({ onSelectRisk }) {
+  const { user } = useAuth();
   const [radar, setRadar] = useState(null);
   const [chief, setChief] = useState(null);
 
@@ -30,8 +41,31 @@ export default function ExecutiveIntelligenceCenter({ onSelectRisk }) {
           <span className="px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 text-[10px] tracking-wider">مباشر</span>
         </div>
 
+        <div className="rounded-2xl bg-gradient-to-l from-yellow-500/[0.08] to-white/[0.025] border border-yellow-500/15 p-4 mb-4 flex flex-col md:flex-row md:items-center gap-4">
+          <UserAvatar user={user} size="lg" showStatus />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] tracking-wider text-yellow-400/80">المستخدم النشط</span>
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+                <ShieldCheck size={11} /> جلسة موثقة
+              </span>
+            </div>
+            <div className="font-heading text-xl font-black text-slate-50 mt-1">{user?.name || "مستخدم تنفيذي"}</div>
+            <div className="text-sm text-yellow-300/80 mt-0.5">{user?.title || ROLE_LABELS[user?.role] || "عضو الفريق التنفيذي"}</div>
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-slate-500 mt-3">
+              {user?.department && <span className="flex items-center gap-1.5"><Building2 size={13} /> {user.department}</span>}
+              {user?.email && <span className="flex items-center gap-1.5" dir="ltr"><Mail size={13} /> {user.email}</span>}
+            </div>
+          </div>
+          <div className="md:text-left text-right">
+            <div className="text-[10px] text-slate-500">حالة الاتصال</div>
+            <div className="text-sm font-bold text-emerald-300 mt-1">متصل بالمنصة</div>
+            <div className="text-[10px] text-slate-600 mt-1">تم تخصيص الإحاطة وفق الدور</div>
+          </div>
+        </div>
+
         <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-5 mb-4">
-          <div className="text-lg font-heading font-bold text-slate-100">{translate(chief?.greeting || "صباح الخير")}</div>
+          <div className="text-lg font-heading font-bold text-slate-100">{translate(chief?.greeting || `صباح الخير ${user?.name || ""}`)}</div>
           <p className="text-slate-400 mt-2">{translate(chief?.headline || "جارٍ إعداد السياق التنفيذي.")}</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4">
             {(chief?.insights || []).map((insight, index) => (
