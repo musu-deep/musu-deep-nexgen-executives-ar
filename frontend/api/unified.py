@@ -3,7 +3,15 @@ from __future__ import annotations
 import asyncio
 from urllib.parse import parse_qs
 
-from api.index import DEMO_PASSWORD, USERS, app as backend_app, core
+from fastapi import HTTPException
+
+import api.index as index_module
+
+DEMO_PASSWORD = index_module.DEMO_PASSWORD
+USERS = index_module.USERS
+core = index_module.core
+outer_app = index_module.app
+mounted_app = index_module.backend_app
 
 
 HOSTED_USER_PROFILES = {
@@ -22,13 +30,7 @@ _password_hash: str | None = None
 
 
 async def ensure_hosted_directory() -> None:
-    """Seed deterministic users in every Vercel cold instance.
-
-    Vercel can execute login and subsequent API requests in different
-    serverless instances. The original backend validates a token by looking up
-    its subject ID in the local store, so every instance must use identical
-    user IDs before handling a request.
-    """
+    """Seed deterministic users in every Vercel cold instance."""
     global _directory_ready, _password_hash
     if _directory_ready:
         return
@@ -63,7 +65,60 @@ async def ensure_hosted_directory() -> None:
         _directory_ready = True
 
 
-@backend_app.on_event("startup")
+async def hosted_get_current_user(request):
+    """Validate a signed session without relying on one serverless instance."""
+    token = request.cookies.get("access_token")
+    if not token:
+        authorization = request.headers.get("Authorization", "")
+        if authorization.startswith("Bearer "):
+            token = authorization[7:].strip()
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    try:
+        payload = core.pyjwt.decode(
+            token,
+            core.JWT_SECRET,
+            algorithms=[core.JWT_ALGORITHM],
+        )
+        if payload.get("type") != "access":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+
+        email = str(payload.get("email") or "").strip().lower()
+        hosted_profile = HOSTED_USER_PROFILES.get(email)
+        if hosted_profile:
+            return dict(hosted_profile)
+
+        user = None
+        if email:
+            user = await core.db.users.find_one(
+                {"email": email},
+                {"_id": 0, "password_hash": 0},
+            )
+        if not user and payload.get("sub"):
+            user = await core.db.users.find_one(
+                {"id": payload.get("sub")},
+                {"_id": 0, "password_hash": 0},
+            )
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        if not user.get("active", True):
+            raise HTTPException(status_code=403, detail="User inactive")
+        return user
+    except core.pyjwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except core.pyjwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+# FastAPI stores dependency callables when routes are registered. Override the
+# original dependency on both the outer Vercel app and the mounted office app.
+outer_app.dependency_overrides[core.get_current_user] = hosted_get_current_user
+mounted_app.dependency_overrides[core.get_current_user] = hosted_get_current_user
+
+
+@outer_app.on_event("startup")
 async def stabilize_hosted_users_on_startup() -> None:
     await ensure_hosted_directory()
 
@@ -74,9 +129,6 @@ class UnifiedApiGateway:
 
     async def __call__(self, scope, receive, send):
         if scope.get("type") == "http":
-            # Do not rely solely on lifespan/startup hooks in a serverless
-            # runtime. Guarantee deterministic identities before every first
-            # request handled by a cold instance.
             await ensure_hosted_directory()
 
             query = parse_qs(scope.get("query_string", b"").decode("utf-8"))
@@ -91,4 +143,4 @@ class UnifiedApiGateway:
         await self.target(scope, receive, send)
 
 
-app = UnifiedApiGateway(backend_app)
+app = UnifiedApiGateway(outer_app)
