@@ -9,6 +9,21 @@
       "maxDuration": 60,
       "includeFiles": "api/backend/**",
       "excludeFiles": "{src/**,public/**,node_modules/**,dist/**}"
+    },
+    "api/auth/login.py": {
+      "maxDuration": 30,
+      "includeFiles": "api/**"
+    },
+    "api/auth/me.py": {
+      "maxDuration": 30,
+      "includeFiles": "api/**"
+    },
+    "api/auth/finance-login.py": {
+      "maxDuration": 30,
+      "includeFiles": "api/**"
+    },
+    "api/auth/group-accounts.py": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
