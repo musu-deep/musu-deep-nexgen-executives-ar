@@ -40,11 +40,11 @@ export default function AgentLoungePage() {
         notify: true,
       });
       setResult(response.data);
-      toast.success("اكتملت عملية التنسيق الذكي");
+      toast.success("اكتملت عملية التنسيق التنفيذي");
       load();
     } catch (error) {
       console.error(error);
-      toast.error("تعذر تنفيذ عملية التنسيق الذكي");
+      toast.error("تعذر تنفيذ عملية التنسيق التنفيذي");
     }
   };
 
@@ -76,9 +76,9 @@ export default function AgentLoungePage() {
     <div data-testid="agent-lounge-page" dir="rtl">
       <div className="flex items-end justify-between mb-7 flex-wrap gap-4">
         <div>
-          <div className="text-xs tracking-[0.12em] text-yellow-500/80">صالة الذكاء التنفيذي</div>
-          <h1 className="font-heading text-4xl font-black mt-2 flex items-center gap-3"><Brain className="text-yellow-500"/> صالة الوكلاء الذكيين</h1>
-          <p className="text-slate-500 text-sm mt-1">مساحة تشغيل مرئية للقوى العاملة الذكية التي تعمل عبر المنصة.</p>
+          <div className="text-xs tracking-[0.12em] text-yellow-500/80">مركز العمليات التنفيذية</div>
+          <h1 className="font-heading text-4xl font-black mt-2 flex items-center gap-3"><Brain className="text-yellow-500"/> مركز الوكلاء التنفيذيين</h1>
+          <p className="text-slate-500 text-sm mt-1">بيئة تشغيل موحدة للوكلاء المتخصصين ومسارات العمل المؤسسية عبر المنصة.</p>
         </div>
         <Link to="/dashboard" className="px-4 py-2 rounded-lg bg-white/5 text-slate-300 hover:bg-yellow-500/10 hover:text-yellow-300 text-sm">العودة إلى لوحة القيادة</Link>
       </div>
@@ -87,7 +87,7 @@ export default function AgentLoungePage() {
         <div className="flex items-center gap-2 mb-3">
           <Bot className="text-yellow-500"/>
           <div>
-            <div className="text-xs tracking-[0.12em] text-yellow-500/80">طبقة تنسيق الذكاء الاصطناعي</div>
+            <div className="text-xs tracking-[0.12em] text-yellow-500/80">طبقة التنسيق التنفيذي</div>
             <div className="text-sm text-slate-400">تحوّل الأوامر النصية والصوتية إلى مهام واجتماعات وتوجيه للمستندات وتنبيهات تنفيذية.</div>
           </div>
         </div>
@@ -106,7 +106,7 @@ export default function AgentLoungePage() {
         </div>
         {result && (
           <div className="mt-4 rounded-xl bg-yellow-500/5 border border-yellow-500/20 p-4">
-            <div className="text-xs tracking-[0.12em] text-yellow-400 mb-2 flex items-center gap-2"><Sparkles size={14}/> مخرجات التنسيق الذكي</div>
+            <div className="text-xs tracking-[0.12em] text-yellow-400 mb-2 flex items-center gap-2"><Sparkles size={14}/> مخرجات التنسيق التنفيذي</div>
             <ResultView result={result}/>
           </div>
         )}
@@ -127,7 +127,7 @@ export default function AgentLoungePage() {
             </div>
             <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
               <span>{agent.recommendations} توصية</span>
-              <Link to={agent.route || "/dashboard"} className="text-yellow-400 hover:text-yellow-300 flex items-center gap-1">فتح مساحة الوكيل <ExternalLink size={12}/></Link>
+              <Link to={agent.route || "/dashboard"} className="text-yellow-400 hover:text-yellow-300 flex items-center gap-1">فتح وحدة العمل <ExternalLink size={12}/></Link>
             </div>
           </div>
         ))}
