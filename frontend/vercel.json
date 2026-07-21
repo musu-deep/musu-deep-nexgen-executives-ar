@@ -14,17 +14,21 @@
       "maxDuration": 60,
       "includeFiles": "api/**"
     },
+    "api/executive_data.py": {
+      "maxDuration": 60,
+      "includeFiles": "api/**"
+    },
     "api/group-accounts.py": {
       "maxDuration": 30
     }
   },
   "rewrites": [
+    { "source": "/api/executive-data", "destination": "/api/executive_data" },
     { "source": "/api/auth/group-accounts", "destination": "/api/group-accounts" },
     { "source": "/api/auth/login", "destination": "/api/unified?route=auth/login" },
     { "source": "/api/auth/finance-login", "destination": "/api/unified?route=auth/finance-login" },
     { "source": "/api/auth/me", "destination": "/api/unified?route=auth/me" },
     { "source": "/api/auth/logout", "destination": "/api/unified?route=auth/logout" },
-    { "source": "/api/reports/daily-executive", "destination": "/api/unified?route=reports/daily-executive" },
     { "source": "/api/:path*", "destination": "/api/unified?route=:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
