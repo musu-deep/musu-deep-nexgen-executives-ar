@@ -24,9 +24,13 @@
     },
     "api/auth/group-accounts.py": {
       "maxDuration": 30
+    },
+    "api/group-accounts.py": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
+    { "source": "/api/auth/group-accounts", "destination": "/api/group-accounts" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
