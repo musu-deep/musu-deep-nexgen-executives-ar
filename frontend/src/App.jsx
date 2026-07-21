@@ -22,6 +22,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
 import DailyReportPage from "./pages/DailyReportPage";
 import AgentLoungePage from "./pages/AgentLoungePage";
+import OfficeUnitPage from "./pages/OfficeUnitPage";
 import AppLayout from "./components/AppLayout";
 import ArabicLocalization from "./components/ArabicLocalization";
 import "./App.css";
@@ -62,6 +63,10 @@ function AppRoutes() {
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/executive-secretariat" element={<OfficeUnitPage unit="secretariat" />} />
+          <Route path="/legal-affairs" element={<OfficeUnitPage unit="legal" />} />
+          <Route path="/presidential-advisor" element={<ProtectedRoute roles={["admin", "ceo"]}><OfficeUnitPage unit="advisor" /></ProtectedRoute>} />
+          <Route path="/human-resources" element={<OfficeUnitPage unit="hr" />} />
           <Route path="/meetings" element={<MeetingsPage />} />
           <Route path="/meeting-requests" element={<MeetingRequestsPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
