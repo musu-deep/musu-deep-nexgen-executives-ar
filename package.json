@@ -2,6 +2,7 @@
   "name": "nexgen-executives-ar",
   "private": true,
   "version": "1.1.0",
+  "type": "module",
   "scripts": {
     "dev": "python scripts/dev_embedded.py",
     "start:local": "python scripts/dev_embedded.py",
