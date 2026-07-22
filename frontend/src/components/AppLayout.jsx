@@ -11,7 +11,7 @@ import {
   Sun, Moon,
 } from "lucide-react";
 
-import NEXGEN_LOGO from "../assets/NEXGEN_EXECUTIVES.png";
+import ARAAK_GROUP_LOGO from "../assets/araakGroupLogoData";
 import UserAvatar from "./UserAvatar";
 
 const NAV = [
@@ -50,9 +50,13 @@ export default function AppLayout() {
   return (
     <div className="app-shell min-h-screen flex" dir="rtl">
       <aside className="app-sidebar w-72 fixed right-0 top-0 h-screen border-l border-white/5 bg-[#0b0f18]/90 backdrop-blur-xl flex flex-col z-30">
-        <div className="app-sidebar-header px-5 py-5 border-b border-white/5">
-          <div className="brand-logo-panel flex items-center justify-center bg-black/40 rounded-lg p-3 border border-white/5">
-            <img src={NEXGEN_LOGO} alt="NEXGEN EXECUTIVES" className="h-14 w-auto object-contain" />
+        <div className="app-sidebar-header px-4 py-4 border-b border-white/5">
+          <div className="brand-logo-panel min-h-[106px] flex items-center justify-center bg-black/40 rounded-xl px-3 py-4 border border-white/5 overflow-hidden">
+            <img
+              src={ARAAK_GROUP_LOGO}
+              alt="مجموعة أراك للتنمية"
+              className="w-full max-w-[250px] h-auto object-contain drop-shadow-sm"
+            />
           </div>
           <div className="mt-3 text-center text-[11px] tracking-[0.12em] text-slate-500">مكتب الرئيس التنفيذي</div>
         </div>
