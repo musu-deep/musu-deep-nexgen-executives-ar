@@ -59,9 +59,9 @@ export default function ExecutiveLoginPage() {
     toast: "مرحبًا بك في مكتب الرئيس التنفيذي",
     err: "تعذر تسجيل الدخول",
     features: [
-      { v: "WORKFLOW", l: "التنسيق التنفيذي" },
-      { v: "MongoDB", l: "الذاكرة المؤسسية" },
-      { v: "MCP", l: "تكامل الوكلاء" },
+      { v: "ODOO | ARAAK", l: "العمليات • المالية • الموارد" },
+      { v: "واعي | أراك", l: "التحليل المؤسسي • المشورة • التوصيات" },
+      { v: "ARAAK DIGITAL", l: "جامعة أراك • منصة التطوع • مجتمع تنميات" },
     ],
   };
 
@@ -151,8 +151,8 @@ export default function ExecutiveLoginPage() {
           <div className="grid grid-cols-3 gap-4">
             {copy.features.map((item) => (
               <div key={item.v} className="glass-card p-4 text-center">
-                <div className="font-heading text-yellow-400 font-bold text-xl" dir="ltr">{item.v}</div>
-                <div className="text-[11px] text-slate-500 mt-1">{item.l}</div>
+                <div className="font-heading text-yellow-400 font-bold text-lg" dir="auto">{item.v}</div>
+                <div className="text-[11px] text-slate-500 mt-1 leading-5">{item.l}</div>
               </div>
             ))}
           </div>
