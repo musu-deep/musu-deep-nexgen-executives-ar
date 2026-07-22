@@ -1,8 +1,9 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
+import { Sun, Moon } from "lucide-react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { ThemeProvider } from "./contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import ExecutiveLoginPage from "./pages/ExecutiveLoginPage";
 import ExecutiveDashboardPage from "./pages/ExecutiveDashboardPage";
@@ -28,6 +29,7 @@ import CameraMonitoringPage from "./pages/CameraMonitoringPage";
 import AppLayout from "./components/AppLayout";
 import ArabicLocalization from "./components/ArabicLocalization";
 import "./App.css";
+import "./araak-light.css";
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -53,10 +55,35 @@ function PublicOnly({ children }) {
   return children;
 }
 
+function LoginAppearanceToggle() {
+  const location = useLocation();
+  const { mode, toggleMode } = useTheme();
+  if (location.pathname !== "/login") return null;
+
+  return (
+    <button
+      type="button"
+      onClick={toggleMode}
+      className="theme-mode-toggle fixed top-5 left-5 z-[70] px-4 py-2.5 rounded-xl border border-white/10 bg-black/25 backdrop-blur-xl text-slate-200 flex items-center gap-2 text-sm font-bold shadow-xl"
+      aria-label={mode === "light" ? "تشغيل الوضع الليلي" : "تشغيل الوضع النهاري"}
+      title={mode === "light" ? "تشغيل الوضع الليلي" : "تشغيل الوضع النهاري"}
+    >
+      {mode === "light" ? <Sun size={17} className="text-yellow-500" /> : <Moon size={17} className="text-indigo-300" />}
+      {mode === "light" ? "نهاري" : "ليلي"}
+    </button>
+  );
+}
+
+function PlatformToaster() {
+  const { mode } = useTheme();
+  return <Toaster position="top-center" theme={mode === "light" ? "light" : "dark"} richColors closeButton dir="rtl" />;
+}
+
 function AppRoutes() {
   return (
     <BrowserRouter>
       <ArabicLocalization />
+      <LoginAppearanceToggle />
       <Routes>
         <Route path="/login" element={<PublicOnly><ExecutiveLoginPage /></PublicOnly>} />
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -98,7 +125,7 @@ function App() {
         <LanguageProvider>
           <AuthProvider>
             <AppRoutes />
-            <Toaster position="top-center" theme="dark" richColors closeButton dir="rtl" />
+            <PlatformToaster />
           </AuthProvider>
         </LanguageProvider>
       </ThemeProvider>
