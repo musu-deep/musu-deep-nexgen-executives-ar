@@ -1,9 +1,11 @@
 import { useEffect } from "react";
 import { translateArabicText } from "../i18n/ar";
 import { translateExtraArabicText } from "../i18n/ar-extra";
+import ARAAK_GROUP_LOGO from "../assets/araakGroupLogoData";
 
 const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "CODE", "PRE", "TEXTAREA"]);
 const TRANSLATABLE_ATTRIBUTES = ["placeholder", "title", "aria-label", "data-empty-label"];
+const LEGACY_BRAND_ALT = /NEXGEN EXECUTIVES/i;
 
 const PROFESSIONAL_TERMS = [
   [/معرف المجموعة التنظيمية/g, "معرّف مجموعة العمل"],
@@ -61,8 +63,20 @@ function localizeTextNode(node) {
   if (translated !== current) node.nodeValue = translated;
 }
 
+function applyOfficialBranding(element) {
+  if (!(element instanceof HTMLImageElement)) return;
+  const alt = element.getAttribute("alt") || "";
+  if (!LEGACY_BRAND_ALT.test(alt)) return;
+
+  if (element.src !== ARAAK_GROUP_LOGO) element.src = ARAAK_GROUP_LOGO;
+  element.alt = "مجموعة أراك للتنمية";
+  element.classList.add("araak-official-logo");
+}
+
 function localizeElement(element) {
   if (!(element instanceof Element) || SKIP_TAGS.has(element.tagName)) return;
+
+  applyOfficialBranding(element);
 
   for (const attr of TRANSLATABLE_ATTRIBUTES) {
     if (!element.hasAttribute(attr)) continue;
