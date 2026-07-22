@@ -1,12 +1,14 @@
 import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import { ROLE_LABELS } from "../lib/api";
 import {
   LayoutDashboard, FolderKanban, ListChecks, BarChart3, Users,
   Shield, LogOut, Calendar, Video, Camera, FileArchive,
   Mic, MessageSquare, Bell, Settings, CalendarClock, FileText, BrainCircuit,
   BriefcaseBusiness, Scale, UserRoundCog, UsersRound, ClipboardCheck,
+  Sun, Moon,
 } from "lucide-react";
 
 import NEXGEN_LOGO from "../assets/NEXGEN_EXECUTIVES.png";
@@ -37,6 +39,7 @@ const NAV = [
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
+  const { mode, toggleMode } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -45,10 +48,10 @@ export default function AppLayout() {
   };
 
   return (
-    <div className="min-h-screen flex" dir="rtl">
-      <aside className="w-72 fixed right-0 top-0 h-screen border-l border-white/5 bg-[#0b0f18]/90 backdrop-blur-xl flex flex-col z-30">
-        <div className="px-5 py-5 border-b border-white/5">
-          <div className="flex items-center justify-center bg-black/40 rounded-lg p-3 border border-white/5">
+    <div className="app-shell min-h-screen flex" dir="rtl">
+      <aside className="app-sidebar w-72 fixed right-0 top-0 h-screen border-l border-white/5 bg-[#0b0f18]/90 backdrop-blur-xl flex flex-col z-30">
+        <div className="app-sidebar-header px-5 py-5 border-b border-white/5">
+          <div className="brand-logo-panel flex items-center justify-center bg-black/40 rounded-lg p-3 border border-white/5">
             <img src={NEXGEN_LOGO} alt="NEXGEN EXECUTIVES" className="h-14 w-auto object-contain" />
           </div>
           <div className="mt-3 text-center text-[11px] tracking-[0.12em] text-slate-500">مكتب الرئيس التنفيذي</div>
@@ -116,7 +119,23 @@ export default function AppLayout() {
           )}
         </nav>
 
-        <div className="p-4 border-t border-white/5">
+        <div className="app-sidebar-footer p-4 border-t border-white/5 space-y-3">
+          <button
+            type="button"
+            onClick={toggleMode}
+            data-testid="theme-mode-toggle"
+            className="theme-mode-toggle w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border border-white/10 bg-white/[0.025] text-slate-300 hover:border-yellow-500/25 transition-all"
+            title={mode === "light" ? "التحويل إلى الوضع الليلي" : "التحويل إلى الوضع النهاري"}
+          >
+            <span className="flex items-center gap-2 text-sm font-bold">
+              {mode === "light" ? <Sun size={17} className="text-yellow-500" /> : <Moon size={17} className="text-indigo-300" />}
+              {mode === "light" ? "الوضع النهاري" : "الوضع الليلي"}
+            </span>
+            <span className={`relative w-11 h-6 rounded-full transition-colors ${mode === "light" ? "bg-emerald-600" : "bg-slate-700"}`}>
+              <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${mode === "light" ? "right-6" : "right-1"}`} />
+            </span>
+          </button>
+
           <div className="glass-card p-3.5 flex items-center gap-3 border-yellow-500/10">
             <UserAvatar user={user} size="sm" showStatus />
             <div className="flex-1 min-w-0">
@@ -137,7 +156,7 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 pr-72 min-h-screen">
+      <main className="app-main flex-1 pr-72 min-h-screen">
         <div className="px-8 py-6 max-w-[1600px] mx-auto">
           <Outlet />
         </div>
