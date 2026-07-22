@@ -184,3 +184,23 @@ html[data-color-mode="light"] {
   --input: 139 26% 82%;
   --ring: 139 50% 32%;
 }
+
+/* Official ARAAK Group logo treatment across navigation and login. */
+.araak-official-logo {
+  width: 100% !important;
+  max-width: 590px !important;
+  height: auto !important;
+  max-height: 170px;
+  object-fit: contain !important;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.18));
+}
+
+[data-testid="login-card"] .araak-official-logo {
+  max-width: 310px !important;
+  max-height: 94px;
+  margin-inline: auto;
+}
+
+html[data-color-mode="light"] .araak-official-logo {
+  filter: drop-shadow(0 10px 24px rgba(40, 122, 61, 0.13));
+}
