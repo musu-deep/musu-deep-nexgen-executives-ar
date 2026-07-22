@@ -1,0 +1,186 @@
+/* ARAAK Group daytime identity: warm white, institutional green, gold accents, restrained red. */
+html[data-color-mode="light"] body {
+  background:
+    radial-gradient(1100px 560px at 92% -8%, rgba(40, 122, 61, 0.11), transparent 60%),
+    radial-gradient(850px 480px at 4% 108%, rgba(213, 169, 10, 0.10), transparent 62%),
+    #f4f7f1;
+  color: #173226;
+}
+
+html[data-color-mode="light"] .App,
+html[data-color-mode="light"] .app-shell,
+html[data-color-mode="light"] .app-main {
+  background: transparent;
+  color: #173226;
+}
+
+html[data-color-mode="light"] .app-sidebar {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(40, 122, 61, 0.14) !important;
+  box-shadow: -18px 0 50px rgba(28, 75, 42, 0.08);
+}
+
+html[data-color-mode="light"] .app-sidebar-header,
+html[data-color-mode="light"] .app-sidebar-footer {
+  border-color: rgba(40, 122, 61, 0.12) !important;
+}
+
+html[data-color-mode="light"] .brand-logo-panel {
+  background: linear-gradient(145deg, #ffffff, #edf5e9) !important;
+  border-color: rgba(40, 122, 61, 0.14) !important;
+  box-shadow: 0 8px 24px rgba(40, 122, 61, 0.08);
+}
+
+html[data-color-mode="light"] .glass-card {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(40, 122, 61, 0.14);
+  box-shadow: 0 12px 34px rgba(31, 74, 43, 0.08);
+}
+
+html[data-color-mode="light"] .glass-card:hover {
+  border-color: rgba(40, 122, 61, 0.24);
+}
+
+html[data-color-mode="light"] [class*="bg-[#0a0d14]"],
+html[data-color-mode="light"] [class*="bg-[#0b0f18]"],
+html[data-color-mode="light"] [class*="bg-[#111622]"] {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+html[data-color-mode="light"] [class*="bg-white/"] {
+  background-color: rgba(40, 122, 61, 0.045) !important;
+}
+
+html[data-color-mode="light"] [class~="bg-black/75"] {
+  background-color: rgba(18, 35, 25, 0.42) !important;
+}
+
+html[data-color-mode="light"] [class~="bg-black/40"],
+html[data-color-mode="light"] [class~="bg-black/30"],
+html[data-color-mode="light"] [class~="bg-black/25"],
+html[data-color-mode="light"] [class~="bg-black/20"] {
+  background-color: rgba(40, 122, 61, 0.055) !important;
+}
+
+html[data-color-mode="light"] [class*="text-slate-50"],
+html[data-color-mode="light"] [class*="text-slate-100"] {
+  color: #173226 !important;
+}
+
+html[data-color-mode="light"] [class*="text-slate-200"],
+html[data-color-mode="light"] [class*="text-slate-300"] {
+  color: #2e4d3a !important;
+}
+
+html[data-color-mode="light"] [class*="text-slate-400"] {
+  color: #506a5a !important;
+}
+
+html[data-color-mode="light"] [class*="text-slate-500"],
+html[data-color-mode="light"] [class*="text-slate-600"] {
+  color: #74867b !important;
+}
+
+html[data-color-mode="light"] [class*="text-yellow-300"],
+html[data-color-mode="light"] [class*="text-yellow-400"],
+html[data-color-mode="light"] [class*="text-yellow-500"] {
+  color: #9b7600 !important;
+}
+
+html[data-color-mode="light"] [class*="border-white/"] {
+  border-color: rgba(40, 122, 61, 0.14) !important;
+}
+
+html[data-color-mode="light"] [class*="border-yellow-500/"] {
+  border-color: rgba(178, 138, 0, 0.26) !important;
+}
+
+html[data-color-mode="light"] input,
+html[data-color-mode="light"] textarea,
+html[data-color-mode="light"] select {
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: #173226 !important;
+  border-color: rgba(40, 122, 61, 0.18) !important;
+  box-shadow: inset 0 1px 2px rgba(31, 74, 43, 0.03);
+}
+
+html[data-color-mode="light"] input::placeholder,
+html[data-color-mode="light"] textarea::placeholder {
+  color: #8a9a90 !important;
+}
+
+html[data-color-mode="light"] select option {
+  background: #ffffff;
+  color: #173226;
+}
+
+html[data-color-mode="light"] table {
+  color: #173226;
+}
+
+html[data-color-mode="light"] thead,
+html[data-color-mode="light"] [class*="bg-slate-900"],
+html[data-color-mode="light"] [class*="bg-slate-800"] {
+  background: #eaf2e6 !important;
+}
+
+html[data-color-mode="light"] tbody tr {
+  border-color: rgba(40, 122, 61, 0.10) !important;
+}
+
+html[data-color-mode="light"] tbody tr:hover {
+  background: rgba(40, 122, 61, 0.035) !important;
+}
+
+html[data-color-mode="light"] .theme-mode-toggle {
+  background: linear-gradient(135deg, #ffffff, #edf5e9) !important;
+  border-color: rgba(40, 122, 61, 0.18) !important;
+  color: #174e2a !important;
+}
+
+html[data-color-mode="light"] .shimmer {
+  background: linear-gradient(90deg, rgba(40,122,61,0.035) 25%, rgba(40,122,61,0.11) 50%, rgba(40,122,61,0.035) 75%);
+  background-size: 200% 100%;
+}
+
+html[data-color-mode="light"] .gold-text {
+  background: linear-gradient(135deg, #287a3d 0%, #b28a00 50%, #287a3d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+html[data-color-mode="light"] .gold-divider {
+  background: linear-gradient(90deg, transparent, rgba(40,122,61,0.30), rgba(178,138,0,0.30), transparent);
+}
+
+html[data-color-mode="light"] ::-webkit-scrollbar-track {
+  background: #edf3e9;
+}
+
+html[data-color-mode="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(40, 122, 61, 0.22);
+}
+
+html[data-color-mode="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(178, 138, 0, 0.38);
+}
+
+html[data-color-mode="light"] {
+  --background: 100 22% 96%;
+  --foreground: 143 37% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 143 37% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 143 37% 14%;
+  --primary: 139 50% 32%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 105 25% 92%;
+  --secondary-foreground: 143 37% 14%;
+  --muted: 105 25% 92%;
+  --muted-foreground: 139 12% 42%;
+  --accent: 48 100% 35%;
+  --accent-foreground: 143 37% 14%;
+  --border: 139 26% 82%;
+  --input: 139 26% 82%;
+  --ring: 139 50% 32%;
+}
