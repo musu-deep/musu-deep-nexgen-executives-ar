@@ -8,7 +8,7 @@ import {
   Shield, LogOut, Calendar, Video, Camera, FileArchive,
   Mic, MessageSquare, Bell, Settings, CalendarClock, FileText, BrainCircuit,
   BriefcaseBusiness, Scale, UserRoundCog, UsersRound, ClipboardCheck,
-  Sun, Moon,
+  Sun, Moon, Database,
 } from "lucide-react";
 
 import ARAAK_GROUP_LOGO from "../assets/araakGroupLogoData";
@@ -19,6 +19,7 @@ const NAV = [
   { to: "/dashboard", icon: LayoutDashboard, label: "لوحة القيادة التنفيذية", testId: "nav-dashboard" },
   { to: "/daily-report", icon: FileText, label: "الموجز التنفيذي اليومي", testId: "nav-daily-report" },
   { to: "/ai-lounge", icon: BrainCircuit, label: "مركز الوكلاء التنفيذيين", testId: "nav-ai-lounge", roles: ["admin", "ceo", "tracker"] },
+  { to: "/odoo-integration", icon: Database, label: "بيئة تكامل Odoo", testId: "nav-odoo-integration", roles: ["admin", "ceo"] },
   { to: "/projects", icon: FolderKanban, label: "المشروعات", testId: "nav-projects" },
   { to: "/tasks", icon: ListChecks, label: "المهام", testId: "nav-tasks" },
   { to: "/executive-secretariat", icon: BriefcaseBusiness, label: "السكرتارية التنفيذية", testId: "nav-executive-secretariat" },
