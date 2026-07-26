@@ -1,41 +1,76 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import api, { SECTOR_LABELS, STATUS_LABELS } from "../lib/api";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, RadarChart, PolarGrid, PolarAngleAxis,
   PolarRadiusAxis, Radar,
 } from "recharts";
+import { Database, RefreshCw } from "lucide-react";
 
 const COLORS = ["#D4AF37", "#34d399", "#60a5fa", "#fbbf24", "#a78bfa", "#fb7185"];
 const formatNumber = (value) => new Intl.NumberFormat("ar").format(value || 0);
+const asArray = (payload, key) => Array.isArray(payload) ? payload : (Array.isArray(payload?.[key]) ? payload[key] : []);
 
 export default function ReportsPage() {
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [meetings, setMeetings] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sourceCount, setSourceCount] = useState(0);
 
-  useEffect(() => {
-    Promise.all([api.get("/projects"), api.get("/tasks")]).then(([projectResponse, taskResponse]) => {
-      setProjects(projectResponse.data);
-      setTasks(taskResponse.data);
+  const load = async () => {
+    setLoading(true);
+    const sources = [
+      { key: "projects", call: api.get("/projects") },
+      { key: "tasks", call: api.get("/tasks") },
+      { key: "employees", call: api.get("/employees") },
+      { key: "meetings", call: api.get("/office/meetings") },
+      { key: "documents", call: api.get("/documents") },
+      { key: "requests", call: api.get("/araak-ceo/meeting-requests") },
+      { key: "messages", call: api.get("/araak-ceo/messages") },
+    ];
+    const settled = await Promise.allSettled(sources.map((source) => source.call));
+    let successful = 0;
+    settled.forEach((result, index) => {
+      const key = sources[index].key;
+      if (result.status !== "fulfilled") return;
+      successful += 1;
+      const payload = result.value?.data;
+      if (key === "projects") setProjects(asArray(payload, "projects"));
+      if (key === "tasks") setTasks(asArray(payload, "tasks"));
+      if (key === "employees") setEmployees(asArray(payload, "employees"));
+      if (key === "meetings") setMeetings(asArray(payload, "meetings"));
+      if (key === "documents") setDocuments(asArray(payload, "documents"));
+      if (key === "requests") setRequests(asArray(payload, "requests"));
+      if (key === "messages") setMessages(asArray(payload, "messages"));
     });
-  }, []);
+    setSourceCount(successful);
+    setLoading(false);
+  };
 
-  const sectorAggregation = {};
-  projects.forEach((project) => {
-    const sector = project.sector;
-    sectorAggregation[sector] = sectorAggregation[sector] || { sector, count: 0, progress: 0, budget: 0, completed: 0 };
-    sectorAggregation[sector].count += 1;
-    sectorAggregation[sector].progress += project.progress || 0;
-    sectorAggregation[sector].budget += project.budget || 0;
-    if (project.status === "completed") sectorAggregation[sector].completed += 1;
-  });
+  useEffect(() => { load(); }, []);
 
-  const sectorData = Object.values(sectorAggregation).map((sector) => ({
-    ...sector,
-    name: SECTOR_LABELS[sector.sector] || sector.sector,
-    avgProgress: Math.round(sector.progress / Math.max(sector.count, 1)),
-    completionRate: Math.round((sector.completed / Math.max(sector.count, 1)) * 100),
-  }));
+  const sectorData = useMemo(() => {
+    const sectorAggregation = {};
+    projects.forEach((project) => {
+      const sector = project.sector || "corporate";
+      sectorAggregation[sector] = sectorAggregation[sector] || { sector, count: 0, progress: 0, budget: 0, completed: 0 };
+      sectorAggregation[sector].count += 1;
+      sectorAggregation[sector].progress += Number(project.progress || 0);
+      sectorAggregation[sector].budget += Number(project.budget || 0);
+      if (project.status === "completed") sectorAggregation[sector].completed += 1;
+    });
+    return Object.values(sectorAggregation).map((sector) => ({
+      ...sector,
+      name: SECTOR_LABELS[sector.sector] || sector.sector,
+      avgProgress: Math.round(sector.progress / Math.max(sector.count, 1)),
+      completionRate: Math.round((sector.completed / Math.max(sector.count, 1)) * 100),
+    }));
+  }, [projects]);
 
   const radarData = sectorData.map((sector) => ({
     subject: sector.name,
@@ -48,12 +83,20 @@ export default function ReportsPage() {
     value: projects.filter((project) => project.status === status).length,
   }));
 
+  const now = new Date();
   const totalProjects = projects.length;
   const activeProjects = projects.filter((project) => project.status === "active").length;
-  const averageProgress = totalProjects === 0 ? 0 : Math.round(projects.reduce((sum, project) => sum + (project.progress || 0), 0) / totalProjects);
-  const totalBudget = projects.reduce((sum, project) => sum + (project.budget || 0), 0);
+  const averageProgress = totalProjects === 0 ? 0 : Math.round(projects.reduce((sum, project) => sum + Number(project.progress || 0), 0) / totalProjects);
+  const totalBudget = projects.reduce((sum, project) => sum + Number(project.budget || 0), 0);
   const criticalProjects = projects.filter((project) => project.priority === "critical" || project.rag === "red").length;
   const overdueTasks = tasks.filter((task) => task.status === "delayed").length;
+  const activeEmployees = employees.filter((employee) => employee.active !== false).length;
+  const upcomingMeetings = meetings.filter((meeting) => meeting.date && new Date(meeting.date) >= now && meeting.status !== "cancelled").length;
+  const pendingRequests = requests.filter((request) => request.status === "pending").length;
+  const persistentMessages = messages.filter((message) => message.source === "araak_ceo_odoo").length;
+  const pieDataKey = totalBudget > 0 ? "budget" : "count";
+  const pieTitle = totalBudget > 0 ? "الميزانية حسب القطاع" : "توزيع المشروعات حسب القطاع";
+  const pieSubtitle = totalBudget > 0 ? "توزيع إجمالي الميزانية عبر القطاعات" : "يُستخدم عدد المشروعات حتى اكتمال بيانات الميزانية في Odoo";
 
   const tooltipStyle = {
     background: "#111622",
@@ -64,24 +107,35 @@ export default function ReportsPage() {
 
   return (
     <div data-testid="reports-page" dir="rtl">
-      <div className="mb-7">
-        <div className="text-xs tracking-[0.12em] text-yellow-500/80">التقارير والتحليلات</div>
-        <h1 className="font-heading text-4xl font-black mt-2">التحليلات التنفيذية</h1>
-        <p className="text-slate-500 text-sm mt-1">رؤى عملية تدعم القرارات الاستراتيجية للقيادة التنفيذية</p>
+      <div className="flex items-end justify-between mb-7 flex-wrap gap-4">
+        <div>
+          <div className="text-xs tracking-[0.12em] text-yellow-500/80">التقارير والتحليلات • ARAAK CEO</div>
+          <h1 className="font-heading text-4xl font-black mt-2">التحليلات التنفيذية المتكاملة</h1>
+          <p className="text-slate-500 text-sm mt-1">تجميع لحظي من Odoo ومسارات القرار والاتصالات في ARAAK CEO</p>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="px-3 py-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-xs font-bold flex items-center gap-2"><Database size={14}/>{sourceCount}/7 مصادر فاعلة</span>
+          <button onClick={load} className="px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-yellow-300 flex items-center gap-2"><RefreshCw size={16}/> تحديث التقرير</button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+      {loading && <div className="glass-card p-4 mb-5 text-sm text-slate-400">جارٍ تجميع التقرير التنفيذي من المصادر التشغيلية...</div>}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-5">
         <KPI label="إجمالي المشروعات" value={totalProjects} />
-        <KPI label="المشروعات النشطة" value={activeProjects} />
         <KPI label="متوسط الإنجاز" value={`${averageProgress}%`} />
-        <KPI label="إجمالي الميزانية" value={formatNumber(totalBudget)} />
         <KPI label="المهام المتأخرة" value={overdueTasks} />
+        <KPI label="الموظفون النشطون" value={activeEmployees} />
+        <KPI label="الاجتماعات القادمة" value={upcomingMeetings} />
+        <KPI label="طلبات تنتظر القرار" value={pendingRequests} />
+        <KPI label="المستندات المؤسسية" value={documents.length} />
+        <KPI label="مراسلات محفوظة" value={persistentMessages || messages.length} />
       </div>
 
       <div className="glass-card p-5 mb-5 border-yellow-500/20">
-        <div className="text-[10px] tracking-[0.12em] text-yellow-400 mb-2">رؤية تنفيذية ذكية</div>
+        <div className="text-[10px] tracking-[0.12em] text-yellow-400 mb-2">رؤية تنفيذية موحدة</div>
         <p className="text-sm text-slate-300 leading-relaxed">
-          تُظهر تحليلات المحفظة وجود {activeProjects} مشروعًا نشطًا بمتوسط إنجاز يبلغ {averageProgress}%. ويوجد {criticalProjects} مشروعًا حرجًا و{overdueTasks} مهمة متأخرة تتطلب متابعة تنفيذية. يُوصى بمراجعة توزيع الميزانية وأداء القطاعات قبل دورة القرار التنفيذي التالية.
+          تعرض ARAAK CEO حاليًا {activeProjects} مشروعًا نشطًا بمتوسط إنجاز {averageProgress}%، و{criticalProjects} مشروعًا حرجًا، و{overdueTasks} مهمة متأخرة. كما توجد {pendingRequests} طلبات اجتماعات تنتظر القرار، و{upcomingMeetings} اجتماعات قادمة، و{activeEmployees} موظفًا نشطًا في دليل Odoo. الأولوية التنفيذية هي إغلاق المهام المتأخرة، ثم تحويل الطلبات المنتظرة إلى قرارات ومواعيد، وربط المراسلات الحرجة بمهام متابعة في Odoo.
         </p>
       </div>
 
@@ -100,13 +154,13 @@ export default function ReportsPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="الميزانية حسب القطاع" subtitle="توزيع إجمالي الميزانية عبر القطاعات">
+        <ChartCard title={pieTitle} subtitle={pieSubtitle}>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={sectorData} cx="50%" cy="50%" innerRadius={60} outerRadius={110} paddingAngle={2} dataKey="budget" nameKey="name" label={(entry) => entry.name} labelLine={false}>
+              <Pie data={sectorData} cx="50%" cy="50%" innerRadius={60} outerRadius={110} paddingAngle={2} dataKey={pieDataKey} nameKey="name" label={(entry) => entry.name} labelLine={false}>
                 {sectorData.map((_, index) => <Cell key={index} fill={COLORS[index % COLORS.length]} stroke="none" />)}
               </Pie>
-              <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatNumber(value)} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(value) => pieDataKey === "budget" ? formatNumber(value) : value} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>

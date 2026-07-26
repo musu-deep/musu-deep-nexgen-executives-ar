@@ -1,8 +1,8 @@
-"""Self-contained local entry point for NEXGEN EXECUTIVES.
+"""Self-contained local entry point for ARAAK CEO.
 
 The complete FastAPI application runs with an in-process async Mongo-compatible
-store. Data is persisted to a local JSON snapshot so projects, tasks and office
-records survive restarts without requiring MongoDB.
+fallback store. Persistent executive workflows are mirrored to Odoo, while the
+local snapshot keeps development and offline operation available.
 """
 from __future__ import annotations
 
@@ -17,24 +17,28 @@ import motor.motor_asyncio
 motor.motor_asyncio.AsyncIOMotorClient = AsyncMongoMockClient
 
 os.environ.setdefault("MONGO_URL", "mongodb://embedded.local:27017")
-os.environ.setdefault("DB_NAME", "nexgen_executives_local")
+os.environ.setdefault("DB_NAME", "araak_ceo_local")
 
 from . import server as core_server  # noqa: E402
 from . import odoo_server  # noqa: E402
 from .hr_gateway import register_hr_routes  # noqa: E402
 from .office_gateway import register_office_routes  # noqa: E402
 from .office_alias import register_office_alias_routes  # noqa: E402
+from .workflow_gateway import register_workflow_routes  # noqa: E402
+from .workflow_alias import register_workflow_alias_routes  # noqa: E402
 
 app = odoo_server.app
 register_hr_routes(app, core_server, odoo_server)
 register_office_routes(app, core_server, odoo_server)
 register_office_alias_routes(app, core_server, odoo_server)
+register_workflow_routes(app, core_server, odoo_server)
+register_workflow_alias_routes(app, core_server, odoo_server)
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_FILE = Path(
     os.getenv(
         "EMBEDDED_DATA_FILE",
-        str(ROOT / ".local" / "nexgen_executives_data.json"),
+        str(ROOT / ".local" / "araak_ceo_data.json"),
     )
 )
 
