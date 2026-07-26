@@ -18,6 +18,10 @@
       "maxDuration": 60,
       "includeFiles": "api/**"
     },
+    "api/secure_unified_v2.py": {
+      "maxDuration": 60,
+      "includeFiles": "api/**"
+    },
     "api/executive_data.py": {
       "maxDuration": 60,
       "includeFiles": "api/**"
@@ -33,7 +37,7 @@
     { "source": "/api/auth/finance-login", "destination": "/api/unified?route=auth/finance-login" },
     { "source": "/api/auth/me", "destination": "/api/unified?route=auth/me" },
     { "source": "/api/auth/logout", "destination": "/api/unified?route=auth/logout" },
-    { "source": "/api/:path*", "destination": "/api/secure_unified?route=:path*" },
+    { "source": "/api/:path*", "destination": "/api/secure_unified_v2?route=:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
