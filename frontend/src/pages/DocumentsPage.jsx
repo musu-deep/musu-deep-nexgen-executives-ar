@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import api, { PRIORITY_LABELS } from "../lib/api";
-import { Plus, X, FileText, ExternalLink, Trash2, Brain, Sparkles, Link2, CalendarClock, ListChecks, ShieldAlert, RefreshCw } from "lucide-react";
+import { Plus, X, FileText, ExternalLink, Trash2, Brain, Sparkles, Link2, CalendarClock, ListChecks, ShieldAlert, RefreshCw, Database } from "lucide-react";
 import { toast } from "sonner";
 import { translateArabicText } from "../i18n/ar";
 import { translateExtraArabicText } from "../i18n/ar-extra";
@@ -28,6 +28,12 @@ function translate(value) {
   return translateExtraArabicText(translateArabicText(value));
 }
 
+function safeDate(value) {
+  if (!value) return "غير محدد";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("ar");
+}
+
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -35,9 +41,23 @@ export default function DocumentsPage() {
   const [selected, setSelected] = useState(null);
   const [intelligence, setIntelligence] = useState(null);
   const [loadingIntelligence, setLoadingIntelligence] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [warning, setWarning] = useState("");
   const [form, setForm] = useState({ title: "", description: "", category: "report", url: "", file_type: "PDF", is_public: true });
 
-  const load = () => api.get("/documents").then((response) => setDocuments(response.data));
+  const load = async () => {
+    setLoading(true);
+    setWarning("");
+    try {
+      const response = await api.get("/documents");
+      setDocuments(Array.isArray(response.data) ? response.data : []);
+    } catch {
+      setDocuments([]);
+      setWarning("تعذر قراءة الذاكرة المؤسسية من Odoo والمنصة.");
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => { load(); }, []);
 
   const submit = async (event) => {
@@ -53,9 +73,13 @@ export default function DocumentsPage() {
     }
   };
 
-  const deleteDocument = async (id) => {
+  const deleteDocument = async (document) => {
+    if (document.source === "odoo") {
+      toast.info("مستندات Odoo تُدار من الذاكرة المؤسسية داخل Odoo.");
+      return;
+    }
     if (!window.confirm("هل تريد حذف المستند؟")) return;
-    await api.delete(`/documents/${id}`);
+    await api.delete(`/documents/${document.id}`);
     load();
     toast.success("تم حذف المستند");
   };
@@ -63,6 +87,10 @@ export default function DocumentsPage() {
   const openIntelligence = async (document) => {
     setSelected(document);
     setIntelligence(document.intelligence ? { analysis: document.intelligence, created_task_id: document.intelligence?.created_task_id } : null);
+    if (document.source === "odoo") {
+      setLoadingIntelligence(false);
+      return;
+    }
     setLoadingIntelligence(true);
     try {
       const response = await api.get(`/documents/${document.id}/intelligence`);
@@ -76,6 +104,10 @@ export default function DocumentsPage() {
 
   const rerun = async () => {
     if (!selected) return;
+    if (selected.source === "odoo") {
+      toast.info("تحليل هذا المستند مصدره Odoo؛ حدّث بيانات المستند في Odoo ثم اضغط تحديث الذاكرة.");
+      return;
+    }
     setLoadingIntelligence(true);
     try {
       const response = await api.post(`/documents/${selected.id}/intelligence`);
@@ -90,6 +122,8 @@ export default function DocumentsPage() {
   };
 
   const filtered = filter === "all" ? documents : documents.filter((document) => document.category === filter);
+  const odooCount = useMemo(() => documents.filter((document) => document.source === "odoo").length, [documents]);
+  const platformCount = documents.length - odooCount;
 
   return (
     <div data-testid="documents-page" dir="rtl">
@@ -99,10 +133,16 @@ export default function DocumentsPage() {
           <h1 className="font-heading text-4xl font-black mt-2 flex items-center gap-3"><Brain className="text-yellow-500"/> محطة الذاكرة المؤسسية</h1>
           <p className="text-slate-500 text-sm mt-1">{filtered.length} مستندًا • تصنيف وتحليل وتوجيه وربط تلقائي بالعمل المؤسسي</p>
         </div>
-        <button onClick={() => setShow(true)} className="px-5 py-2.5 rounded-lg bg-gradient-to-l from-yellow-500 to-yellow-600 text-black font-bold flex items-center gap-2">
-          <Plus size={18}/> رفع وتحليل
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="px-3 py-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-xs font-bold flex items-center gap-2"><Database size={14}/> Odoo {odooCount} • المنصة {platformCount}</span>
+          <button type="button" onClick={load} className="px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-yellow-300 flex items-center gap-2"><RefreshCw size={15}/> تحديث الذاكرة</button>
+          <button onClick={() => setShow(true)} className="px-5 py-2.5 rounded-lg bg-gradient-to-l from-yellow-500 to-yellow-600 text-black font-bold flex items-center gap-2">
+            <Plus size={18}/> رفع وتحليل
+          </button>
+        </div>
       </div>
+
+      {warning && <div className="mb-5 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 text-xs text-amber-200">{warning}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <IntelMetric icon={<FileText size={15}/>} label="المستندات" value={documents.length}/>
@@ -129,31 +169,38 @@ export default function DocumentsPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.length === 0 ? (
-          <div className="glass-card p-10 text-center text-slate-500 col-span-3">لم يتم العثور على مستندات</div>
-        ) : filtered.map((document) => (
-          <div key={document.id} className="glass-card p-5 hover:border-yellow-500/30 group">
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-12 h-12 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400"><FileText size={20}/></div>
-              <span className={`text-[10px] px-2 py-1 rounded ${CATEGORY_COLORS[document.category]}`}>{CATEGORY_LABELS[document.category]}</span>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{[1,2,3,4,5,6].map((item) => <div key={item} className="h-64 shimmer rounded-2xl"/>)}</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.length === 0 ? (
+            <div className="glass-card p-10 text-center text-slate-500 col-span-3">لم يتم العثور على مستندات</div>
+          ) : filtered.map((document) => (
+            <div key={document.id} className="glass-card p-5 hover:border-yellow-500/30 group">
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-12 h-12 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400"><FileText size={20}/></div>
+                <div className="flex items-center gap-2">
+                  {document.source === "odoo" && <span className="text-[9px] px-2 py-1 rounded bg-emerald-500/10 text-emerald-300">Odoo</span>}
+                  <span className={`text-[10px] px-2 py-1 rounded ${CATEGORY_COLORS[document.category] || CATEGORY_COLORS.other}`}>{CATEGORY_LABELS[document.category] || CATEGORY_LABELS.other}</span>
+                </div>
+              </div>
+              <h3 className="font-heading font-bold text-slate-100 line-clamp-1">{document.title}</h3>
+              <p className="text-xs text-slate-500 mt-1 line-clamp-2">{document.description}</p>
+              <div className="mt-3 flex items-center gap-2 text-[10px] tracking-wider text-yellow-400/80">
+                <Sparkles size={12}/>{document.intelligence_status === "processed" || document.intelligence ? "تمت المعالجة الذكية" : "في قائمة التحليل"}
+              </div>
+              {document.intelligence?.risk_level && <div className="mt-2 text-xs text-slate-500">مستوى المخاطر: <span className="text-yellow-300">{translate(document.intelligence.risk_level)}</span></div>}
+              <div className="mt-3 text-xs text-slate-500">رفعه: {document.uploaded_by_name || "غير محدد"}</div>
+              <div className="text-[11px] text-slate-600">{safeDate(document.created_at)}</div>
+              <div className="mt-3 flex gap-2">
+                <button onClick={() => openIntelligence(document)} className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 rounded bg-yellow-500/15 text-yellow-300 text-xs hover:bg-yellow-500/25"><Brain size={12}/> التحليل الذكي</button>
+                <a href={document.url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded bg-white/5 text-slate-300 text-xs hover:bg-white/10" aria-label="فتح المستند"><ExternalLink size={12}/></a>
+                {document.source !== "odoo" && <button onClick={() => deleteDocument(document)} className="px-3 py-2 rounded bg-rose-500/10 text-rose-300 hover:bg-rose-500/20" aria-label="حذف المستند"><Trash2 size={12}/></button>}
+              </div>
             </div>
-            <h3 className="font-heading font-bold text-slate-100 line-clamp-1">{document.title}</h3>
-            <p className="text-xs text-slate-500 mt-1 line-clamp-2">{document.description}</p>
-            <div className="mt-3 flex items-center gap-2 text-[10px] tracking-wider text-yellow-400/80">
-              <Sparkles size={12}/>{document.intelligence_status === "processed" || document.intelligence ? "تمت المعالجة الذكية" : "في قائمة التحليل"}
-            </div>
-            {document.intelligence?.risk_level && <div className="mt-2 text-xs text-slate-500">مستوى المخاطر: <span className="text-yellow-300">{translate(document.intelligence.risk_level)}</span></div>}
-            <div className="mt-3 text-xs text-slate-500">رفعه: {document.uploaded_by_name}</div>
-            <div className="text-[11px] text-slate-600">{new Date(document.created_at).toLocaleDateString("ar")}</div>
-            <div className="mt-3 flex gap-2">
-              <button onClick={() => openIntelligence(document)} className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 rounded bg-yellow-500/15 text-yellow-300 text-xs hover:bg-yellow-500/25"><Brain size={12}/> التحليل الذكي</button>
-              <a href={document.url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded bg-white/5 text-slate-300 text-xs hover:bg-white/10" aria-label="فتح المستند"><ExternalLink size={12}/></a>
-              <button onClick={() => deleteDocument(document.id)} className="px-3 py-2 rounded bg-rose-500/10 text-rose-300 hover:bg-rose-500/20" aria-label="حذف المستند"><Trash2 size={12}/></button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {selected && <IntelligenceModal document={selected} item={intelligence} loading={loadingIntelligence} onClose={() => setSelected(null)} onRerun={rerun}/>} 
 
@@ -224,19 +271,19 @@ function IntelligenceModal({ document, item, loading, onClose, onRerun }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-xl bg-black/20 border border-white/5 p-4">
                 <div className="text-xs tracking-[0.12em] text-yellow-400 mb-2">المهمة المقترحة</div>
-                <div className="font-bold text-slate-100">{translate(analysis.suggested_task?.title)}</div>
-                <div className="text-xs text-slate-500 mt-1">الأولوية: {PRIORITY_LABELS[analysis.suggested_task?.priority] || translate(analysis.suggested_task?.priority)}</div>
+                <div className="font-bold text-slate-100">{translate(analysis.suggested_task?.title) || "ربط المستند بالمسؤول والمشروع ذي الصلة"}</div>
+                <div className="text-xs text-slate-500 mt-1">الأولوية: {PRIORITY_LABELS[analysis.suggested_task?.priority] || translate(analysis.suggested_task?.priority) || "متوسطة"}</div>
                 <div className="text-xs text-emerald-300 mt-2">معرف المهمة المنشأة: {item?.created_task_id || analysis.created_task_id || "—"}</div>
               </div>
               <div className="rounded-xl bg-black/20 border border-white/5 p-4">
                 <div className="text-xs tracking-[0.12em] text-yellow-400 mb-2">الاجتماع المقترح</div>
-                <div className="font-bold text-slate-100">{translate(analysis.suggested_meeting?.title)}</div>
-                <div className="text-xs text-slate-500 mt-1">{translate(analysis.suggested_meeting?.reason)}</div>
+                <div className="font-bold text-slate-100">{translate(analysis.suggested_meeting?.title) || "مراجعة تنفيذية للمستند"}</div>
+                <div className="text-xs text-slate-500 mt-1">{translate(analysis.suggested_meeting?.reason) || "مراجعة الالتزامات والمخاطر والإجراء التالي."}</div>
               </div>
             </div>
 
             <button onClick={onRerun} className="mt-5 px-4 py-2 rounded-lg bg-white/5 hover:bg-yellow-500/10 text-slate-300 hover:text-yellow-300 text-sm flex items-center gap-2">
-              <RefreshCw size={14}/> إعادة تشغيل التحليل الذكي
+              <RefreshCw size={14}/> {document.source === "odoo" ? "تحديث التحليل من Odoo" : "إعادة تشغيل التحليل الذكي"}
             </button>
           </>
         )}
