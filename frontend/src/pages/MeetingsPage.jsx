@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../lib/api";
-import { Plus, Video, MapPin, Clock, X, Users as UsersIcon } from "lucide-react";
+import { Plus, Video, MapPin, Clock, X, Users as UsersIcon, RefreshCw, Database } from "lucide-react";
 import { toast } from "sonner";
 import DetailModal from "../components/DetailModal";
 import AICommandBar from "../components/AICommandBar";
@@ -12,16 +12,45 @@ export default function MeetingsPage() {
   const location = useLocation();
   const [meetings, setMeetings] = useState([]);
   const [users, setUsers] = useState([]);
+  const [source, setSource] = useState("loading");
+  const [warning, setWarning] = useState("");
+  const [loading, setLoading] = useState(true);
   const [show, setShow] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", meeting_type: "individual", date: "", duration_minutes: 60, location: "", meeting_link: "", attendee_ids: [], is_remote: false });
   const [selected, setSelected] = useState(null);
   const [brief, setBrief] = useState(null);
   const [briefLoading, setBriefLoading] = useState(false);
 
-  const load = () => Promise.all([api.get("/meetings"), api.get("/users")]).then(([meetingResponse, userResponse]) => {
-    setMeetings(meetingResponse.data);
-    setUsers(userResponse.data);
-  });
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [meetingResponse, employeeResponse] = await Promise.all([
+        api.get("/office/meetings"),
+        api.get("/employees"),
+      ]);
+      const meetingPayload = meetingResponse.data || {};
+      const employeePayload = employeeResponse.data || {};
+      setMeetings(Array.isArray(meetingPayload) ? meetingPayload : (meetingPayload.meetings || []));
+      setUsers(Array.isArray(employeePayload) ? employeePayload : (employeePayload.employees || []));
+      setSource(meetingPayload.source || "platform");
+      setWarning(meetingPayload.warning || "");
+    } catch {
+      try {
+        const [meetingResponse, userResponse] = await Promise.all([api.get("/meetings"), api.get("/users")]);
+        setMeetings(Array.isArray(meetingResponse.data) ? meetingResponse.data : []);
+        setUsers(Array.isArray(userResponse.data) ? userResponse.data : []);
+        setSource("platform");
+        setWarning("تعذر قراءة تقويم Odoo؛ عُرضت اجتماعات المنصة المحلية مؤقتًا.");
+      } catch {
+        setMeetings([]);
+        setUsers([]);
+        setSource("offline");
+        setWarning("تعذر قراءة بيانات الاجتماعات.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     load();
@@ -62,6 +91,8 @@ export default function MeetingsPage() {
     }
   };
 
+  const sourceLabel = source === "odoo-hybrid" ? "Odoo مباشر + المنصة" : source === "platform" ? "قاعدة المنصة" : source === "offline" ? "غير متاح" : "جارٍ التحميل";
+
   return (
     <div data-testid="meetings-page" dir="rtl">
       <div className="flex items-end justify-between mb-7 flex-wrap gap-4">
@@ -70,43 +101,50 @@ export default function MeetingsPage() {
           <h1 className="font-heading text-4xl font-black mt-2">الاجتماعات التنفيذية</h1>
           <p className="text-slate-500 text-sm mt-1">{meetings.length} اجتماعًا مسجلًا</p>
         </div>
-        <button data-testid="new-meeting-btn" onClick={() => setShow(true)} className="px-5 py-2.5 rounded-lg bg-gradient-to-l from-yellow-500 to-yellow-600 text-black font-bold flex items-center gap-2">
-          <Plus size={18}/> اجتماع جديد
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-2 ${source === "odoo-hybrid" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-amber-500/20 bg-amber-500/10 text-amber-300"}`}><Database size={14}/>{sourceLabel}</span>
+          <button type="button" onClick={load} className="px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-yellow-300 flex items-center gap-2"><RefreshCw size={16}/> تحديث</button>
+          <button data-testid="new-meeting-btn" onClick={() => setShow(true)} className="px-5 py-2.5 rounded-lg bg-gradient-to-l from-yellow-500 to-yellow-600 text-black font-bold flex items-center gap-2">
+            <Plus size={18}/> اجتماع جديد
+          </button>
+        </div>
       </div>
+
+      {warning && <div className="mb-5 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 text-xs leading-6 text-amber-200">{warning}</div>}
 
       <AICommandBar />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {meetings.length === 0 ? (
-          <div className="glass-card p-12 text-center text-slate-500 col-span-2">لا توجد اجتماعات مجدولة</div>
-        ) : meetings.map((meeting) => (
-          <div key={meeting.id} className="glass-card p-5 cursor-pointer hover:border-yellow-500/25 hover:bg-white/[0.03] transition-colors" onClick={() => openDetail(meeting)}>
-            <div className="flex items-start justify-between mb-3 gap-3">
-              <span className="text-[10px] tracking-wider text-yellow-500/80 px-2 py-1 bg-yellow-500/5 rounded">{TYPE_LABEL[meeting.meeting_type]}</span>
-              <span className="text-xs text-slate-500">{new Date(meeting.date).toLocaleString("ar", {dateStyle: "medium", timeStyle: "short"})}</span>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div className="h-44 shimmer rounded-2xl"/><div className="h-44 shimmer rounded-2xl"/></div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {meetings.length === 0 ? (
+            <div className="glass-card p-12 text-center text-slate-500 col-span-2">لا توجد اجتماعات مجدولة</div>
+          ) : meetings.map((meeting) => (
+            <div key={meeting.id} className="glass-card p-5 cursor-pointer hover:border-yellow-500/25 hover:bg-white/[0.03] transition-colors" onClick={() => openDetail(meeting)}>
+              <div className="flex items-start justify-between mb-3 gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] tracking-wider text-yellow-500/80 px-2 py-1 bg-yellow-500/5 rounded">{TYPE_LABEL[meeting.meeting_type] || "تنفيذي"}</span>
+                  {meeting.source === "odoo" && <span className="text-[9px] px-2 py-1 rounded bg-emerald-500/10 text-emerald-300">Odoo</span>}
+                </div>
+                <span className="text-xs text-slate-500">{meeting.date ? new Date(meeting.date).toLocaleString("ar", {dateStyle: "medium", timeStyle: "short"}) : "غير محدد"}</span>
+              </div>
+              <h3 className="font-heading text-lg font-bold">{meeting.title}</h3>
+              <p className="text-sm text-slate-400 mt-1 line-clamp-2">{meeting.description}</p>
+              <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-400">
+                <span className="flex items-center gap-1"><Clock size={12}/> {meeting.duration_minutes || 60} دقيقة</span>
+                {meeting.location && <span className="flex items-center gap-1"><MapPin size={12}/> {meeting.location}</span>}
+                <span className="flex items-center gap-1"><UsersIcon size={12}/> {meeting.attendee_count ?? meeting.attendee_ids?.length ?? 0} من الحضور</span>
+              </div>
+              {meeting.meeting_link && (
+                <a href={meeting.meeting_link} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()} className="mt-3 inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25">
+                  <Video size={12}/> دخول الاجتماع
+                </a>
+              )}
             </div>
-            <h3 className="font-heading text-lg font-bold">{meeting.title}</h3>
-            <p className="text-sm text-slate-400 mt-1 line-clamp-2">{meeting.description}</p>
-            <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-400">
-              <span className="flex items-center gap-1"><Clock size={12}/> {meeting.duration_minutes} دقيقة</span>
-              {meeting.location && <span className="flex items-center gap-1"><MapPin size={12}/> {meeting.location}</span>}
-              <span className="flex items-center gap-1"><UsersIcon size={12}/> {meeting.attendee_ids?.length || 0} من الحضور</span>
-            </div>
-            {meeting.meeting_link && (
-              <a
-                href={meeting.meeting_link}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(event) => event.stopPropagation()}
-                className="mt-3 inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
-              >
-                <Video size={12}/> دخول الاجتماع
-              </a>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {show && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShow(false)}>
@@ -141,6 +179,7 @@ export default function MeetingsPage() {
                   ))}
                 </div>
               </div>
+              <div className="rounded-lg border border-sky-500/15 bg-sky-500/[0.05] px-3 py-2 text-[11px] leading-5 text-sky-200">الاجتماعات الجديدة التي تُنشأ من المنصة تُحفظ محليًا وتظهر مع اجتماعات Odoo في عرض موحد.</div>
               <button type="submit" className="w-full py-3 rounded-lg bg-yellow-500 text-black font-bold">إنشاء الاجتماع</button>
             </form>
           </div>

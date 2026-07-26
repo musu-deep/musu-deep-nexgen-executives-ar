@@ -22,9 +22,13 @@ os.environ.setdefault("DB_NAME", "nexgen_executives_local")
 from . import server as core_server  # noqa: E402
 from . import odoo_server  # noqa: E402
 from .hr_gateway import register_hr_routes  # noqa: E402
+from .office_gateway import register_office_routes  # noqa: E402
+from .office_alias import register_office_alias_routes  # noqa: E402
 
 app = odoo_server.app
 register_hr_routes(app, core_server, odoo_server)
+register_office_routes(app, core_server, odoo_server)
+register_office_alias_routes(app, core_server, odoo_server)
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_FILE = Path(

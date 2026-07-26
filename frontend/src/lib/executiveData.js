@@ -7,6 +7,12 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function responseItems(key, payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload[key])) return payload[key];
+  return [];
+}
+
 function parseDate(value) {
   if (!value) return null;
   const date = new Date(value);
@@ -157,7 +163,7 @@ async function loadLiveOperationalSources(api) {
   const requests = [
     { key: "projects", promise: api.get("/projects") },
     { key: "tasks", promise: api.get("/tasks") },
-    { key: "meetings", promise: api.get("/meetings") },
+    { key: "meetings", promise: api.get("/office/meetings") },
     { key: "requests", promise: api.get("/meeting-requests") },
   ];
   const settled = await Promise.allSettled(requests.map((request) => request.promise));
@@ -168,7 +174,7 @@ async function loadLiveOperationalSources(api) {
   settled.forEach((result, index) => {
     const key = requests[index].key;
     if (result.status === "fulfilled") {
-      data[key] = asArray(result.value?.data);
+      data[key] = responseItems(key, result.value?.data);
       successfulKeys.push(key);
     } else {
       failedKeys.push(key);
