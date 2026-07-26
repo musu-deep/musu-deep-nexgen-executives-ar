@@ -100,6 +100,7 @@ function AppRoutes() {
           <Route path="/legal-affairs" element={<OfficeUnitPage unit="legal" />} />
           <Route path="/presidential-advisor" element={<ProtectedRoute roles={["admin", "ceo"]}><OfficeUnitPage unit="advisor" /></ProtectedRoute>} />
           <Route path="/human-resources" element={<HumanResourcesPage />} />
+          <Route path="/hr" element={<HumanResourcesPage />} />
           <Route path="/quality-control" element={<QualityControlPage />} />
           <Route path="/meetings" element={<MeetingsPage />} />
           <Route path="/meeting-requests" element={<MeetingRequestsPage />} />
