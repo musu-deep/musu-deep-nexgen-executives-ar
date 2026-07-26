@@ -4,9 +4,9 @@ from __future__ import annotations
 import hashlib
 import hmac
 import os
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 
 os.environ.setdefault("EMBEDDED_DATA_FILE", "/tmp/nexgen_executives_data.json")
@@ -17,12 +17,13 @@ os.environ.setdefault(
 )
 
 # Import the embedded runtime first so Motor is patched before the core backend
-# is loaded. Then expose the Odoo-aware gateway as the hosted backend app.
+# is loaded. Keep the stable embedded application mounted for all existing
+# routes, and expose Odoo-aware operational reads explicitly at this level.
 from api.backend import embedded_server
 from api.backend import odoo_server
 
 core = embedded_server.core_server
-backend_app = odoo_server.app
+backend_app = embedded_server.app
 app = FastAPI(
     title="NEXGEN EXECUTIVES — Vercel",
     description="Hosted digital CEO office",
@@ -72,6 +73,11 @@ def public_user(user: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in user.items() if key not in {"_id", "password_hash"}}
 
 
+async def current_user_from_request(request: Request) -> dict[str, Any]:
+    """Authenticate explicitly to avoid nested FastAPI dependency parsing on Vercel."""
+    return await core.get_current_user(request)
+
+
 async def ensure_users() -> None:
     password_hash = core.hash_password(DEMO_PASSWORD)
     for index, profile in enumerate(USERS, start=1):
@@ -104,7 +110,7 @@ async def health():
         "status": "ready",
         "service": "NEXGEN EXECUTIVES",
         "runtime": "vercel-python",
-        "operational_gateway": "odoo-aware",
+        "operational_gateway": "embedded-core-with-odoo-overrides",
     }
 
 
@@ -127,7 +133,8 @@ async def login(payload: LoginPayload, response: Response):
 
 @app.get("/api/auth/me")
 @app.get("/auth/me")
-async def me(user=Depends(core.get_current_user)):
+async def me(request: Request):
+    user = await current_user_from_request(request)
     return {"user": user}
 
 
@@ -155,11 +162,79 @@ async def group_accounts(payload: GroupPayload):
     return {"group": {"id": "support", "name": selected["name"]}, "accounts": accounts}
 
 
+# ---------------------------------------------------------------------------
+# Odoo-aware operational overrides
+# ---------------------------------------------------------------------------
+
+@app.get("/api/projects")
+async def operational_projects(request: Request):
+    user = await current_user_from_request(request)
+    return await odoo_server.operational_projects(user)
+
+
+@app.get("/api/projects/{project_id}")
+async def operational_project(project_id: str, request: Request):
+    user = await current_user_from_request(request)
+    projects = await odoo_server.operational_projects(user)
+    project = next((item for item in projects if str(item.get("id")) == project_id), None)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+@app.get("/api/tasks")
+async def operational_tasks(request: Request, project_id: Optional[str] = None):
+    user = await current_user_from_request(request)
+    return await odoo_server.operational_tasks(user, project_id)
+
+
+@app.get("/api/dashboard")
+async def operational_dashboard(request: Request):
+    user = await current_user_from_request(request)
+    return await odoo_server.operational_dashboard(user)
+
+
+@app.get("/api/odoo/status")
+async def odoo_status(request: Request):
+    await current_user_from_request(request)
+    return await odoo_server.get_odoo_connector().status(check=False)
+
+
+@app.post("/api/odoo/test")
+async def odoo_test(request: Request):
+    user = await current_user_from_request(request)
+    if user.get("role") not in {"admin", "ceo"}:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    return await odoo_server.get_odoo_connector(refresh=True).status(check=True)
+
+
+@app.get("/api/odoo/projects")
+async def direct_odoo_projects(request: Request, limit: int = Query(default=500, ge=1, le=2000)):
+    user = await current_user_from_request(request)
+    try:
+        return await odoo_server._odoo_projects(user, limit=limit)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.get("/api/odoo/tasks")
+async def direct_odoo_tasks(
+    request: Request,
+    limit: int = Query(default=1500, ge=1, le=5000),
+    project_id: Optional[str] = None,
+):
+    user = await current_user_from_request(request)
+    try:
+        return await odoo_server._odoo_tasks(user, project_id=project_id, limit=limit)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
 @app.get("/api/openapi.json", include_in_schema=False)
 async def openapi_schema():
-    return backend_app.openapi()
+    return app.openapi()
 
 
-# Keep the complete Odoo-aware application available for every route not
-# overridden above. The gateway itself mounts the Arabic core application.
+# Keep the stable embedded application available for theme, meetings,
+# requests, documents, settings, writes, and every route not overridden above.
 app.mount("/", backend_app)
