@@ -13,11 +13,11 @@ from fastapi import HTTPException
 FULL_ACCESS_ROLES = {"admin", "ceo"}
 COMMON_MODULES = {
     "dashboard", "projects", "tasks", "meetings", "meeting_requests",
-    "calendar", "messages", "notifications", "settings",
+    "messages", "notifications",
 }
 AREA_MODULES = {
     "human_resources": {"human_resources", "team"},
-    "secretariat": {"executive_secretariat", "documents"},
+    "secretariat": {"executive_secretariat", "documents", "calendar"},
     "legal": {"legal_affairs", "documents"},
     "quality": {"quality_control"},
     "development": set(),
@@ -28,7 +28,7 @@ AREA_MODULES = {
 }
 FULL_ONLY_MODULES = {
     "daily_report", "camera_monitoring", "presidential_advisor", "voice",
-    "ai_lounge", "odoo_integration", "reports", "admin",
+    "ai_lounge", "odoo_integration", "reports", "settings", "admin",
 }
 
 _IDENTITY_CACHE: dict[str, tuple[float, dict[str, set[int]]]] = {}
