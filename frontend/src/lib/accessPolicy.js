@@ -2,12 +2,12 @@ export const FULL_ACCESS_ROLES = new Set(["admin", "ceo"]);
 
 const COMMON_MODULES = new Set([
   "dashboard", "projects", "tasks", "meetings", "meeting_requests",
-  "calendar", "messages", "notifications", "settings",
+  "messages", "notifications",
 ]);
 
 const AREA_MODULES = {
   human_resources: ["human_resources", "team"],
-  secretariat: ["executive_secretariat", "documents"],
+  secretariat: ["executive_secretariat", "documents", "calendar"],
   legal: ["legal_affairs", "documents"],
   quality: ["quality_control"],
   development: [], investment: [], operations: [], digital: [], general: [],
@@ -15,7 +15,7 @@ const AREA_MODULES = {
 
 const FULL_ONLY_MODULES = new Set([
   "daily_report", "camera_monitoring", "presidential_advisor", "voice",
-  "ai_lounge", "odoo_integration", "reports", "admin",
+  "ai_lounge", "odoo_integration", "reports", "settings", "admin",
 ]);
 
 const PATH_MODULES = [
