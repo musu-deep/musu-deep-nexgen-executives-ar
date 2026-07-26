@@ -3,7 +3,7 @@ import api from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import {
   Send, Plus, X, Sparkles, MessageSquare, Users, AlertCircle, CheckCircle2,
-  Forward, ListChecks, Route, Bot,
+  Forward, ListChecks, Route, Bot, Database, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { translateArabicText } from "../i18n/ar";
@@ -32,6 +32,8 @@ export default function MessagesPage() {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
+  const [source, setSource] = useState("loading");
+  const [loading, setLoading] = useState(true);
   const [show, setShow] = useState(false);
   const [selected, setSelected] = useState(null);
   const [aiResult, setAiResult] = useState(null);
@@ -43,10 +45,33 @@ export default function MessagesPage() {
     category: "internal_coordination",
   });
 
-  const load = () => Promise.all([api.get("/messages"), api.get("/users")]).then(([messageResponse, userResponse]) => {
-    setMessages(messageResponse.data);
-    setUsers(userResponse.data.filter((item) => item.id !== user.id));
-  });
+  const isIncoming = (message) => (
+    message.recipient_user_id === user?.id
+    || String(message.recipient_email || "").toLowerCase() === String(user?.email || "").toLowerCase()
+    || message.recipient_id === user?.id
+  );
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [messageResponse, employeeResponse] = await Promise.all([
+        api.get("/araak-ceo/messages"),
+        api.get("/employees"),
+      ]);
+      const messageItems = Array.isArray(messageResponse.data) ? messageResponse.data : (messageResponse.data?.messages || []);
+      const employeeItems = Array.isArray(employeeResponse.data) ? employeeResponse.data : (employeeResponse.data?.employees || []);
+      setMessages(messageItems);
+      setUsers(employeeItems.filter((item) => String(item.email || item.work_email || "").toLowerCase() !== String(user?.email || "").toLowerCase()));
+      setSource(messageItems.some((item) => item.source === "araak_ceo_odoo") ? "araak_ceo_odoo" : employeeResponse.data?.source || "platform");
+    } catch {
+      setMessages([]);
+      setUsers([]);
+      setSource("offline");
+      toast.error("تعذر قراءة مركز الاتصالات");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (user?.id) load();
@@ -55,12 +80,17 @@ export default function MessagesPage() {
   const submit = async (event) => {
     event.preventDefault();
     try {
-      await api.post("/messages", form);
-      toast.success("تم إرسال المراسلة بنجاح");
+      const response = await api.post("/messages", form);
+      if (response.data?.warning) {
+        toast.warning("تم إرسال المراسلة وحفظها محليًا، وتعذرت مزامنتها مؤقتًا مع Odoo");
+      } else {
+        toast.success("تم إرسال المراسلة وحفظها في سجل ARAAK CEO الدائم");
+      }
       setShow(false);
       setForm({ recipient_id: "", subject: "", body: "", priority: "normal", category: "internal_coordination" });
       load();
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error("تعذر إرسال المراسلة");
     }
   };
@@ -68,7 +98,7 @@ export default function MessagesPage() {
   const openMessage = async (message) => {
     setSelected(message);
     setAiResult(null);
-    if (message.recipient_id === user?.id && !message.read) {
+    if (isIncoming(message) && !message.read) {
       await api.patch(`/messages/${message.id}/read`);
       load();
     }
@@ -85,52 +115,71 @@ export default function MessagesPage() {
     try {
       const response = await api.post(endpoints[action]);
       setAiResult({ action, data: response.data });
-      toast.success("تم إنشاء النتيجة الذكية");
+      toast.success(action === "followup" ? "تم إنشاء مهمة المتابعة في Odoo" : "تم إنشاء النتيجة الذكية");
       load();
     } catch (error) {
       console.error(error);
-      toast.error("تعذر تنفيذ الإجراء الذكي");
+      toast.error(action === "followup" ? "تعذر إنشاء مهمة المتابعة في Odoo" : "تعذر تنفيذ الإجراء الذكي");
     }
   };
 
-  const unreadCount = messages.filter((message) => message.recipient_id === user?.id && !message.read).length;
+  const forwardMessage = () => {
+    if (!selected) return;
+    setForm({
+      recipient_id: "",
+      subject: `إعادة توجيه: ${selected.subject || "مراسلة تنفيذية"}`,
+      body: `مراسلة معاد توجيهها من ${selected.sender_name || "—"}:\n\n${selected.body || ""}`,
+      priority: selected.priority || "normal",
+      category: selected.category || "internal_coordination",
+    });
+    setSelected(null);
+    setShow(true);
+  };
+
+  const unreadCount = messages.filter((message) => isIncoming(message) && !message.read).length;
+  const sourceLabel = source === "araak_ceo_odoo" ? "ARAAK CEO + Odoo" : source === "offline" ? "غير متاح" : "ARAAK CEO";
 
   return (
     <div data-testid="messages-page" dir="rtl">
       <div className="flex items-end justify-between mb-7 flex-wrap gap-4">
         <div>
-          <div className="text-xs tracking-[0.12em] text-yellow-500/80">مركز الاتصالات الذكي</div>
+          <div className="text-xs tracking-[0.12em] text-yellow-500/80">مركز الاتصالات الذكي • ARAAK CEO</div>
           <h1 className="font-heading text-4xl font-black mt-2 flex items-center gap-3">
             <MessageSquare className="text-yellow-500"/> مركز الاتصالات المؤسسية
           </h1>
-          <p className="text-slate-500 text-sm mt-1">{messages.length} مراسلة • {unreadCount} غير مقروءة • تنسيق مؤسسي مدعوم بالذكاء الاصطناعي</p>
+          <p className="text-slate-500 text-sm mt-1">{messages.length} مراسلة • {unreadCount} غير مقروءة • دليل الموظفين من Odoo</p>
         </div>
-        <button onClick={() => setShow(true)} className="px-5 py-2.5 rounded-lg bg-gradient-to-l from-yellow-500 to-yellow-600 text-black font-bold flex items-center gap-2">
-          <Plus size={18}/> مراسلة جديدة
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-2 ${source === "araak_ceo_odoo" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-amber-500/20 bg-amber-500/10 text-amber-300"}`}><Database size={14}/>{sourceLabel}</span>
+          <button onClick={load} className="px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-yellow-300 flex items-center gap-2"><RefreshCw size={16}/> تحديث</button>
+          <button onClick={() => setShow(true)} className="px-5 py-2.5 rounded-lg bg-gradient-to-l from-yellow-500 to-yellow-600 text-black font-bold flex items-center gap-2">
+            <Plus size={18}/> مراسلة جديدة
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <InfoCard icon={<Bot size={14}/>} title="المنسق الذكي" tone="text-yellow-400">
           يوجه المراسلات ويلخصها ويصعّدها ويستخرج منها المتابعات والإجراءات.
         </InfoCard>
-        <InfoCard icon={<Users size={14}/>} title="خريطة التفاعل" tone="text-sky-400" value={users.length}>
-          مستخدمون داخليون نشطون
+        <InfoCard icon={<Users size={14}/>} title="دليل Odoo" tone="text-sky-400" value={users.length}>
+          موظفون متاحون للاستلام والتوجيه
         </InfoCard>
         <InfoCard icon={<AlertCircle size={14}/>} title="بانتظار القراءة" tone="text-amber-400" value={unreadCount}>
           مراسلات غير مقروءة
         </InfoCard>
-        <InfoCard icon={<CheckCircle2 size={14}/>} title="حالة التدفق" tone="text-emerald-400">
-          التدفق الاتصالي مراقب وجاهز للتوجيه الذكي.
+        <InfoCard icon={<CheckCircle2 size={14}/>} title="التكامل التشغيلي" tone="text-emerald-400">
+          المتابعة الناتجة تتحول إلى مهمة فعلية في Odoo.
         </InfoCard>
       </div>
 
       <div className="space-y-2">
-        {messages.length === 0 ? (
+        {loading ? (
+          <div className="glass-card p-10 text-center text-slate-500">جارٍ تحميل المراسلات...</div>
+        ) : messages.length === 0 ? (
           <div className="glass-card p-10 text-center text-slate-500">لا توجد مراسلات متاحة</div>
         ) : messages.map((message) => {
-          const incoming = message.recipient_id === user.id;
-          const recipientName = users.find((person) => person.id === message.recipient_id)?.name || "—";
+          const incoming = isIncoming(message);
           return (
             <button
               key={message.id}
@@ -138,14 +187,18 @@ export default function MessagesPage() {
               className={`glass-card p-4 w-full text-right hover:border-yellow-500/40 transition-all ${incoming && !message.read ? "border-yellow-500/30" : ""}`}
             >
               <div className="flex items-center justify-between mb-2 gap-3">
-                <span className="text-xs text-slate-400">{incoming ? `من: ${message.sender_name}` : `إلى: ${recipientName}`}</span>
-                <span className="text-xs text-slate-500">{new Date(message.created_at).toLocaleString("ar")}</span>
+                <span className="text-xs text-slate-400">{incoming ? `من: ${message.sender_name}` : `إلى: ${message.recipient_name || "—"}`}</span>
+                <div className="flex items-center gap-2">
+                  {message.source === "araak_ceo_odoo" && <span className="text-[9px] px-2 py-1 rounded bg-emerald-500/10 text-emerald-300">سجل دائم</span>}
+                  <span className="text-xs text-slate-500">{new Date(message.created_at).toLocaleString("ar")}</span>
+                </div>
               </div>
               {message.subject && <div className="font-bold text-slate-100">{message.subject}</div>}
               <div className="text-sm text-slate-300 mt-1 line-clamp-2">{message.body}</div>
               <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-slate-500">
                 <span className="px-2 py-1 rounded bg-white/5">{CATEGORY_LABELS[message.category] || message.category}</span>
                 <span className="px-2 py-1 rounded bg-white/5">الأولوية: {PRIORITY_LABELS[message.priority] || message.priority}</span>
+                {message.odoo_follow_up_task_id && <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-300">مرتبطة بمهمة Odoo #{message.odoo_follow_up_task_id}</span>}
                 <span className="flex items-center gap-1 text-yellow-400/70"><Sparkles size={12}/> جاهزة للتلخيص والتوجيه واستخراج المتابعة</span>
               </div>
             </button>
@@ -169,15 +222,15 @@ export default function MessagesPage() {
 
             {aiResult && <AIResult result={aiResult} />}
 
-            <div className="mt-4 text-[10px] tracking-[0.12em] text-slate-500">محرك الاتصالات الذكي • التوجيه • التلخيص • المتابعة • الذاكرة المؤسسية</div>
+            <div className="mt-4 text-[10px] tracking-[0.12em] text-slate-500">ARAAK CEO • التوجيه • التلخيص • المتابعة • الذاكرة المؤسسية</div>
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-5">
               <ActionButton onClick={() => aiAction("summary")} icon={<Sparkles size={13}/>} label="تلخيص" />
               <ActionButton onClick={() => aiAction("actions")} icon={<ListChecks size={13}/>} label="استخراج الإجراءات" />
               <ActionButton onClick={() => aiAction("routing")} icon={<Route size={13}/>} label="اقتراح التوجيه" />
-              <ActionButton onClick={() => toast.info("سيُفعّل إعادة التوجيه في الإصدار التالي")} icon={<Forward size={13}/>} label="إعادة توجيه" />
+              <ActionButton onClick={forwardMessage} icon={<Forward size={13}/>} label="إعادة توجيه" />
               <button onClick={() => aiAction("followup")} className="px-3 py-2 rounded-lg bg-yellow-500 text-black font-bold text-xs flex items-center justify-center gap-2">
-                <CheckCircle2 size={13}/> إنشاء متابعة
+                <CheckCircle2 size={13}/> إنشاء متابعة في Odoo
               </button>
             </div>
           </div>
@@ -193,8 +246,8 @@ export default function MessagesPage() {
             </div>
             <form onSubmit={submit} className="space-y-3">
               <select required value={form.recipient_id} onChange={(event) => setForm({ ...form, recipient_id: event.target.value })} className="w-full px-4 py-2.5 rounded-lg bg-[#0a0d14]/80 border border-white/10 text-sm">
-                <option value="">— اختر المستلم —</option>
-                {users.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
+                <option value="">— اختر المستلم من موظفي Odoo —</option>
+                {users.map((person) => <option key={person.id} value={person.id}>{person.name} — {person.title || person.department || "موظف"}</option>)}
               </select>
               <select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} className="w-full px-4 py-2.5 rounded-lg bg-[#0a0d14]/80 border border-white/10 text-sm">
                 {Object.entries(CATEGORY_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -204,6 +257,7 @@ export default function MessagesPage() {
               </select>
               <input placeholder="الموضوع" value={form.subject} onChange={(event) => setForm({ ...form, subject: event.target.value })} className="w-full px-4 py-2.5 rounded-lg bg-[#0a0d14]/80 border border-white/10 text-sm"/>
               <textarea required placeholder="نص المراسلة" value={form.body} onChange={(event) => setForm({ ...form, body: event.target.value })} className="w-full px-4 py-2.5 rounded-lg bg-[#0a0d14]/80 border border-white/10 text-sm min-h-[120px]"/>
+              <div className="rounded-lg border border-sky-500/15 bg-sky-500/[0.05] px-3 py-2 text-[11px] leading-5 text-sky-200">تُحفظ المراسلة في سجل ARAAK CEO الدائم داخل Odoo، ويمكن تحويلها إلى مهمة متابعة تشغيلية.</div>
               <button type="submit" className="w-full py-3 rounded-lg bg-yellow-500 text-black font-bold flex items-center justify-center gap-2"><Send size={14}/> إرسال المراسلة</button>
             </form>
           </div>
