@@ -20,7 +20,7 @@ os.environ.setdefault("MONGO_URL", "mongodb://embedded.local:27017")
 os.environ.setdefault("DB_NAME", "nexgen_executives_local")
 
 from . import server as core_server  # noqa: E402
-from .arabic_server import app  # noqa: E402,F401
+from .odoo_server import app  # noqa: E402,F401
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_FILE = Path(

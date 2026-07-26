@@ -21,6 +21,7 @@ import VoiceInputPage from "./pages/VoiceInputPage";
 import MessagesPage from "./pages/MessagesPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
+import OdooIntegrationPage from "./pages/OdooIntegrationPage";
 import ExecutiveDailyBriefPage from "./pages/ExecutiveDailyBriefPage";
 import AgentLoungePage from "./pages/AgentLoungePage";
 import OfficeUnitPage from "./pages/OfficeUnitPage";
@@ -107,6 +108,7 @@ function AppRoutes() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/voice" element={<ProtectedRoute roles={["ceo", "admin"]}><VoiceInputPage /></ProtectedRoute>} />
           <Route path="/ai-lounge" element={<AgentLoungePage />} />
+          <Route path="/odoo-integration" element={<ProtectedRoute roles={["admin", "ceo"]}><OdooIntegrationPage /></ProtectedRoute>} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/team" element={<TeamPage />} />
