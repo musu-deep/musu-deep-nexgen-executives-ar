@@ -50,7 +50,7 @@ export function functionalAreaForUser(user) {
   if (text.includes("جودة") || text.includes("رقابة") || text.includes("تفتيش") || text.includes("quality")) return "quality";
   if (user?.role === "vp_development" || text.includes("تنمية") || text.includes("تطوير")) return "development";
   if (user?.role === "vp_investment" || text.includes("استثمار")) return "investment";
-  if (user?.role === "dev_manager" || text.includes("تشغيل") || text.includes("عمليات")) return "operations";
+  if (["تشغيل", "عمليات", "مصنع", "مستودعات", "مشتريات", "مبيعات", "تجارة"].some((token) => text.includes(token))) return "operations";
   if (text.includes("تقنية") || text.includes("رقمي") || text.includes("digital")) return "digital";
   return "general";
 }
