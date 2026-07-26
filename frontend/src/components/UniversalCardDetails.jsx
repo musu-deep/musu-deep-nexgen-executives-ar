@@ -8,6 +8,7 @@ import {
 
 const CARD_SELECTOR = [
   '[data-card-details]:not([data-card-details="off"])',
+  '[data-testid*="card"]',
   '.glass-card',
   '[class*="rounded-3xl"][class*="border"]',
   '[class*="rounded-2xl"][class*="border"]',
@@ -53,14 +54,28 @@ function unique(values) {
   return [...new Set(values.map(cleanText).filter(Boolean))];
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function isSafeHref(href) {
+  return Boolean(href) && !/^\s*javascript:/i.test(String(href));
+}
+
 function pageLabel(pathname) {
   return ROUTE_META.find(([prefix]) => pathname.startsWith(prefix))?.[1] || 'المنصة التنفيذية';
 }
 
 function isCandidate(card, root) {
   if (!card || !root?.contains(card)) return false;
-  if (card.matches('button, a, form, nav, aside')) return false;
+  if (card.matches('button, form, nav, aside')) return false;
   if (card.closest('[role="dialog"], [data-card-details-scope="off"]')) return false;
+  if (card.closest('.fixed.inset-0') && card.dataset.cardDetails !== 'force') return false;
   if (card.dataset.cardDetails === 'off') return false;
   if (cleanText(card.textContent).length < 2) return false;
   return true;
@@ -100,10 +115,20 @@ function getSnapshot(card, pathname) {
     element.getAttribute('aria-label') || element.getAttribute('title') || element.textContent
   ))).filter((value) => value.length <= 100).slice(0, 20);
 
-  const links = Array.from(card.querySelectorAll('a[href]')).map((element) => ({
+  const ownLink = card.matches('a[href]') ? [{
+    label: cleanText(card.getAttribute('aria-label') || title || 'فتح الصفحة التفصيلية'),
+    href: card.getAttribute('href'),
+  }] : [];
+
+  const nestedLinks = Array.from(card.querySelectorAll('a[href]')).map((element) => ({
     label: cleanText(element.textContent || element.getAttribute('aria-label') || 'فتح الرابط'),
     href: element.getAttribute('href'),
-  })).filter((item) => item.href).slice(0, 12);
+  }));
+
+  const links = [...ownLink, ...nestedLinks]
+    .filter((item) => isSafeHref(item.href))
+    .filter((item, index, array) => array.findIndex((candidate) => candidate.href === item.href && candidate.label === item.label) === index)
+    .slice(0, 12);
 
   const subcards = directSubcards(card).map((element) => {
     const subHeading = element.querySelector('[data-card-title], h2, h3, h4, h5, h6');
@@ -136,10 +161,13 @@ function markCards(root) {
 
   candidates.forEach((card) => {
     if (!isCandidate(card, root)) return;
-    if (card.matches(INTERACTIVE_SELECTOR)) return;
+    const cardAnchor = card.matches('a[href]');
+    if (card.matches(INTERACTIVE_SELECTOR) && !cardAnchor) return;
     card.dataset.universalCardEnhanced = 'true';
-    if (!card.hasAttribute('tabindex')) card.tabIndex = 0;
-    if (!card.hasAttribute('role')) card.setAttribute('role', 'button');
+    if (!cardAnchor) {
+      if (!card.hasAttribute('tabindex')) card.tabIndex = 0;
+      if (!card.hasAttribute('role')) card.setAttribute('role', 'button');
+    }
     if (!card.hasAttribute('aria-label')) {
       const heading = card.querySelector('h1,h2,h3,h4,h5,h6');
       card.setAttribute('aria-label', `فتح تفاصيل ${cleanText(heading?.textContent) || 'البطاقة'}`);
@@ -164,6 +192,11 @@ export default function UniversalCardDetails({ children }) {
       if (!isCandidate(card, root) || card.dataset.universalCardEnhanced !== 'true') return;
       const interactive = event.target.closest(INTERACTIVE_SELECTOR);
       if (interactive && interactive !== card) return;
+
+      if (card.matches('a[href]')) {
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+        event.preventDefault();
+      }
       openCard(card);
     };
 
@@ -171,6 +204,7 @@ export default function UniversalCardDetails({ children }) {
       if (!['Enter', ' '].includes(event.key)) return;
       const card = event.target.closest('[data-universal-card-enhanced="true"]');
       if (!isCandidate(card, root)) return;
+      if (card.matches('a[href]') && event.key === 'Enter') return;
       event.preventDefault();
       openCard(card);
     };
@@ -242,10 +276,10 @@ function UniversalCardModal({ detail, onClose }) {
   const printDetails = () => {
     const popup = window.open('', '_blank', 'width=900,height=700');
     if (!popup) return;
-    const escaped = printableText
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/\n/g, '<br/>');
-    popup.document.write(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>${detail.title}</title><style>body{font-family:Arial,sans-serif;padding:48px;line-height:2;color:#111}h1{font-size:28px;margin-bottom:18px}.meta{color:#666;font-size:13px;margin-bottom:24px}.content{border:1px solid #ddd;border-radius:16px;padding:24px}</style></head><body><h1>${detail.title}</h1><div class="meta">${detail.page}</div><div class="content">${escaped}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
+    const safeTitle = escapeHtml(detail.title);
+    const safePage = escapeHtml(detail.page);
+    const escaped = escapeHtml(printableText).replace(/\n/g, '<br/>');
+    popup.document.write(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>${safeTitle}</title><style>body{font-family:Arial,sans-serif;padding:48px;line-height:2;color:#111}h1{font-size:28px;margin-bottom:18px}.meta{color:#666;font-size:13px;margin-bottom:24px}.content{border:1px solid #ddd;border-radius:16px;padding:24px}</style></head><body><h1>${safeTitle}</h1><div class="meta">${safePage}</div><div class="content">${escaped}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
     popup.document.close();
   };
 
