@@ -16,10 +16,13 @@ os.environ.setdefault(
     "nexgen-vercel-demo-secret-change-in-project-settings-2026",
 )
 
+# Import the embedded runtime first so Motor is patched before the core backend
+# is loaded. Then expose the Odoo-aware gateway as the hosted backend app.
 from api.backend import embedded_server
+from api.backend import odoo_server
 
 core = embedded_server.core_server
-backend_app = embedded_server.app
+backend_app = odoo_server.app
 app = FastAPI(
     title="NEXGEN EXECUTIVES — Vercel",
     description="Hosted digital CEO office",
@@ -97,7 +100,12 @@ async def initialize_vercel_runtime() -> None:
 @app.get("/api/health", include_in_schema=False)
 @app.get("/health", include_in_schema=False)
 async def health():
-    return {"status": "ready", "service": "NEXGEN EXECUTIVES", "runtime": "vercel-python"}
+    return {
+        "status": "ready",
+        "service": "NEXGEN EXECUTIVES",
+        "runtime": "vercel-python",
+        "operational_gateway": "odoo-aware",
+    }
 
 
 @app.post("/api/auth/login")
@@ -152,5 +160,6 @@ async def openapi_schema():
     return backend_app.openapi()
 
 
-# Keep the complete existing application available for every route not overridden above.
+# Keep the complete Odoo-aware application available for every route not
+# overridden above. The gateway itself mounts the Arabic core application.
 app.mount("/", backend_app)
