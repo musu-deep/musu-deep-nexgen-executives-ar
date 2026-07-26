@@ -164,7 +164,7 @@ async function loadLiveOperationalSources(api) {
     { key: "projects", promise: api.get("/projects") },
     { key: "tasks", promise: api.get("/tasks") },
     { key: "meetings", promise: api.get("/office/meetings") },
-    { key: "requests", promise: api.get("/meeting-requests") },
+    { key: "requests", promise: api.get("/araak-ceo/meeting-requests") },
   ];
   const settled = await Promise.allSettled(requests.map((request) => request.promise));
   const data = { projects: [], tasks: [], meetings: [], requests: [] };
