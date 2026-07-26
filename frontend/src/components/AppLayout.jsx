@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { ROLE_LABELS } from "../lib/api";
+import { canAccessModule, isFullAccessUser } from "../lib/accessPolicy";
 import {
   LayoutDashboard, FolderKanban, ListChecks, BarChart3, Users,
   Shield, LogOut, Calendar, Video, Camera, FileArchive,
@@ -16,33 +17,34 @@ import UserAvatar from "./UserAvatar";
 import UniversalCardDetails from "./UniversalCardDetails";
 
 const NAV = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "لوحة القيادة التنفيذية", testId: "nav-dashboard" },
-  { to: "/daily-report", icon: FileText, label: "الموجز التنفيذي اليومي", testId: "nav-daily-report" },
-  { to: "/ai-lounge", icon: BrainCircuit, label: "مركز الوكلاء التنفيذيين", testId: "nav-ai-lounge", roles: ["admin", "ceo", "tracker"] },
-  { to: "/odoo-integration", icon: Database, label: "بيئة تكامل Odoo", testId: "nav-odoo-integration", roles: ["admin", "ceo"] },
-  { to: "/projects", icon: FolderKanban, label: "المشروعات", testId: "nav-projects" },
-  { to: "/tasks", icon: ListChecks, label: "المهام", testId: "nav-tasks" },
-  { to: "/executive-secretariat", icon: BriefcaseBusiness, label: "السكرتارية التنفيذية", testId: "nav-executive-secretariat" },
-  { to: "/presidential-advisor", icon: UserRoundCog, label: "المستشار الخاص للرئيس التنفيذي", testId: "nav-presidential-advisor", roles: ["admin", "ceo"] },
-  { to: "/legal-affairs", icon: Scale, label: "الشؤون القانونية", testId: "nav-legal-affairs", roles: ["admin", "ceo", "tracker", "vp_development", "vp_investment"] },
-  { to: "/human-resources", icon: UsersRound, label: "الموارد البشرية", testId: "nav-human-resources" },
-  { to: "/quality-control", icon: ClipboardCheck, label: "التفتيش والرقابة والجودة", testId: "nav-quality-control" },
-  { to: "/calendar", icon: Calendar, label: "التقويم", testId: "nav-calendar" },
-  { to: "/meetings", icon: Video, label: "الاجتماعات", testId: "nav-meetings" },
-  { to: "/meeting-requests", icon: CalendarClock, label: "طلبات الاجتماعات", testId: "nav-meeting-requests" },
-  { to: "/documents", icon: FileArchive, label: "مركز تحليل المستندات", testId: "nav-documents" },
-  { to: "/messages", icon: MessageSquare, label: "مركز الاتصالات", testId: "nav-messages", roles: ["admin", "ceo", "tracker", "dev_manager"] },
-  { to: "/voice", icon: Mic, label: "مركز الأوامر الصوتية", testId: "nav-voice", roles: ["ceo", "admin"] },
-  { to: "/reports", icon: BarChart3, label: "التقارير", testId: "nav-reports", roles: ["admin", "ceo", "tracker", "vp_development", "vp_investment", "dev_manager"] },
-  { to: "/team", icon: Users, label: "الفريق", testId: "nav-team", roles: ["admin", "ceo", "tracker"] },
-  { to: "/notifications", icon: Bell, label: "الإشعارات", testId: "nav-notifications" },
-  { to: "/settings", icon: Settings, label: "الإعدادات", testId: "nav-settings" },
+  { to: "/dashboard", module: "dashboard", icon: LayoutDashboard, label: "ملخصي التنفيذي", executiveLabel: "لوحة القيادة التنفيذية", testId: "nav-dashboard" },
+  { to: "/daily-report", module: "daily_report", icon: FileText, label: "الموجز التنفيذي اليومي", testId: "nav-daily-report" },
+  { to: "/ai-lounge", module: "ai_lounge", icon: BrainCircuit, label: "مركز الوكلاء التنفيذيين", testId: "nav-ai-lounge" },
+  { to: "/odoo-integration", module: "odoo_integration", icon: Database, label: "بيئة تكامل Odoo", testId: "nav-odoo-integration" },
+  { to: "/projects", module: "projects", icon: FolderKanban, label: "المشروعات المشتركة", executiveLabel: "المشروعات", testId: "nav-projects" },
+  { to: "/tasks", module: "tasks", icon: ListChecks, label: "مهامي والمهام المشتركة", executiveLabel: "المهام", testId: "nav-tasks" },
+  { to: "/executive-secretariat", module: "executive_secretariat", icon: BriefcaseBusiness, label: "السكرتارية التنفيذية", testId: "nav-executive-secretariat" },
+  { to: "/presidential-advisor", module: "presidential_advisor", icon: UserRoundCog, label: "المستشار الخاص للرئيس التنفيذي", testId: "nav-presidential-advisor" },
+  { to: "/legal-affairs", module: "legal_affairs", icon: Scale, label: "الشؤون القانونية", testId: "nav-legal-affairs" },
+  { to: "/human-resources", module: "human_resources", icon: UsersRound, label: "الموارد البشرية", testId: "nav-human-resources" },
+  { to: "/quality-control", module: "quality_control", icon: ClipboardCheck, label: "التفتيش والرقابة والجودة", testId: "nav-quality-control" },
+  { to: "/calendar", module: "calendar", icon: Calendar, label: "تقويمي", executiveLabel: "التقويم", testId: "nav-calendar" },
+  { to: "/meetings", module: "meetings", icon: Video, label: "اجتماعاتي", executiveLabel: "الاجتماعات", testId: "nav-meetings" },
+  { to: "/meeting-requests", module: "meeting_requests", icon: CalendarClock, label: "طلب اجتماع أو لقاء", executiveLabel: "طلبات الاجتماعات", testId: "nav-meeting-requests" },
+  { to: "/documents", module: "documents", icon: FileArchive, label: "مركز تحليل المستندات", testId: "nav-documents" },
+  { to: "/messages", module: "messages", icon: MessageSquare, label: "اتصالاتي", executiveLabel: "مركز الاتصالات", testId: "nav-messages" },
+  { to: "/voice", module: "voice", icon: Mic, label: "مركز الأوامر الصوتية", testId: "nav-voice" },
+  { to: "/reports", module: "reports", icon: BarChart3, label: "التقارير", testId: "nav-reports" },
+  { to: "/team", module: "team", icon: Users, label: "الفريق", testId: "nav-team" },
+  { to: "/notifications", module: "notifications", icon: Bell, label: "تنبيهاتي", executiveLabel: "الإشعارات", testId: "nav-notifications" },
+  { to: "/settings", module: "settings", icon: Settings, label: "إعداداتي", executiveLabel: "الإعدادات", testId: "nav-settings" },
 ];
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
   const { mode, toggleMode } = useTheme();
   const navigate = useNavigate();
+  const fullAccess = isFullAccessUser(user);
 
   const handleLogout = async () => {
     await logout();
@@ -54,121 +56,49 @@ export default function AppLayout() {
       <aside className="app-sidebar w-72 fixed right-0 top-0 h-screen border-l border-white/5 bg-[#0b0f18]/90 backdrop-blur-xl flex flex-col z-30">
         <div className="app-sidebar-header px-4 py-4 border-b border-white/5">
           <div className="brand-logo-panel min-h-[106px] flex items-center justify-center bg-black/40 rounded-xl px-3 py-4 border border-white/5 overflow-hidden">
-            <img
-              src={ARAAK_GROUP_LOGO}
-              alt="مجموعة أراك للتنمية"
-              className="w-full max-w-[250px] h-auto object-contain drop-shadow-sm"
-            />
+            <img src={ARAAK_GROUP_LOGO} alt="مجموعة اراك للتنمية" className="w-full max-w-[250px] h-auto object-contain drop-shadow-sm" />
           </div>
-          <div className="mt-3 text-center text-[11px] tracking-[0.12em] text-slate-500">مكتب الرئيس التنفيذي</div>
+          <div className="mt-3 text-center text-[11px] tracking-[0.12em] text-slate-500">{fullAccess ? "مكتب الرئيس التنفيذي" : "مساحة العمل الوظيفية"}</div>
         </div>
 
-        <div className="px-3 pt-4">
-          <NavLink
-            to="/camera-monitoring"
-            data-testid="nav-camera-monitoring"
-            className={({ isActive }) =>
-              `group flex items-center gap-3 p-3.5 rounded-xl border transition-all ${
-                isActive
-                  ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-200 shadow-inner"
-                  : "bg-white/[0.025] border-white/5 text-slate-300 hover:bg-emerald-500/5 hover:border-emerald-500/20"
-              }`
-            }
-          >
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-300 flex items-center justify-center border border-emerald-500/15">
-              <Camera size={20} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-black truncate">مركز مراقبة الكاميرات</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.8)]" />
-              </div>
-              <div className="text-[10px] text-slate-500 mt-1 truncate">الاتصال • التسجيل • الكفاءة • الصيانة</div>
-            </div>
-          </NavLink>
-        </div>
+        {canAccessModule(user, "camera_monitoring") && (
+          <div className="px-3 pt-4">
+            <NavLink to="/camera-monitoring" data-testid="nav-camera-monitoring" className={({ isActive }) => `group flex items-center gap-3 p-3.5 rounded-xl border transition-all ${isActive ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-200 shadow-inner" : "bg-white/[0.025] border-white/5 text-slate-300 hover:bg-emerald-500/5 hover:border-emerald-500/20"}`}>
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-300 flex items-center justify-center border border-emerald-500/15"><Camera size={20} /></div>
+              <div className="flex-1 min-w-0"><div className="flex items-center justify-between gap-2"><span className="text-sm font-black truncate">مركز مراقبة الكاميرات</span><span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.8)]" /></div><div className="text-[10px] text-slate-500 mt-1 truncate">الاتصال • التسجيل • الكفاءة • الصيانة</div></div>
+            </NavLink>
+          </div>
+        )}
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {NAV.filter((item) => !item.roles || item.roles.includes(user?.role)).map(({ to, icon: Icon, label, testId }) => (
-            <NavLink
-              key={to}
-              to={to}
-              data-testid={testId}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-yellow-500/10 text-yellow-300 border border-yellow-500/20 shadow-inner"
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-100 border border-transparent"
-                }`
-              }
-            >
-              <Icon size={18} />
-              <span className="flex-1">{label}</span>
+          {NAV.filter((item) => canAccessModule(user, item.module)).map(({ to, icon: Icon, label, executiveLabel, testId }) => (
+            <NavLink key={to} to={to} data-testid={testId} className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive ? "bg-yellow-500/10 text-yellow-300 border border-yellow-500/20 shadow-inner" : "text-slate-400 hover:bg-white/5 hover:text-slate-100 border border-transparent"}`}>
+              <Icon size={18} /><span className="flex-1">{fullAccess && executiveLabel ? executiveLabel : label}</span>
             </NavLink>
           ))}
 
           {user?.role === "admin" && (
-            <NavLink
-              to="/admin"
-              data-testid="nav-admin"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-yellow-500/10 text-yellow-300 border border-yellow-500/20"
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-100 border border-transparent"
-                }`
-              }
-            >
-              <Shield size={18} />
-              <span className="flex-1">إدارة المنصة</span>
+            <NavLink to="/admin" data-testid="nav-admin" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive ? "bg-yellow-500/10 text-yellow-300 border border-yellow-500/20" : "text-slate-400 hover:bg-white/5 hover:text-slate-100 border border-transparent"}`}>
+              <Shield size={18} /><span className="flex-1">إدارة المنصة</span>
             </NavLink>
           )}
         </nav>
 
         <div className="app-sidebar-footer p-4 border-t border-white/5 space-y-3">
-          <button
-            type="button"
-            onClick={toggleMode}
-            data-testid="theme-mode-toggle"
-            className="theme-mode-toggle w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border border-white/10 bg-white/[0.025] text-slate-300 hover:border-yellow-500/25 transition-all"
-            title={mode === "light" ? "التحويل إلى الوضع الليلي" : "التحويل إلى الوضع النهاري"}
-          >
-            <span className="flex items-center gap-2 text-sm font-bold">
-              {mode === "light" ? <Sun size={17} className="text-yellow-500" /> : <Moon size={17} className="text-indigo-300" />}
-              {mode === "light" ? "الوضع النهاري" : "الوضع الليلي"}
-            </span>
-            <span className={`relative w-11 h-6 rounded-full transition-colors ${mode === "light" ? "bg-emerald-600" : "bg-slate-700"}`}>
-              <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${mode === "light" ? "right-6" : "right-1"}`} />
-            </span>
+          <button type="button" onClick={toggleMode} data-testid="theme-mode-toggle" className="theme-mode-toggle w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border border-white/10 bg-white/[0.025] text-slate-300 hover:border-yellow-500/25 transition-all" title={mode === "light" ? "التحويل إلى الوضع الليلي" : "التحويل إلى الوضع النهاري"}>
+            <span className="flex items-center gap-2 text-sm font-bold">{mode === "light" ? <Sun size={17} className="text-yellow-500" /> : <Moon size={17} className="text-indigo-300" />}{mode === "light" ? "الوضع النهاري" : "الوضع الليلي"}</span>
+            <span className={`relative w-11 h-6 rounded-full transition-colors ${mode === "light" ? "bg-emerald-600" : "bg-slate-700"}`}><span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${mode === "light" ? "right-6" : "right-1"}`} /></span>
           </button>
 
           <div className="glass-card p-3.5 flex items-center gap-3 border-yellow-500/10">
             <UserAvatar user={user} size="sm" showStatus />
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-slate-100 truncate">{user?.name}</div>
-              <div className="text-[11px] text-yellow-400/75 truncate">{user?.title || ROLE_LABELS[user?.role]}</div>
-              {user?.department && <div className="text-[10px] text-slate-600 truncate mt-0.5">{user.department}</div>}
-            </div>
-            <button
-              data-testid="logout-btn"
-              onClick={handleLogout}
-              className="p-2 rounded-md hover:bg-rose-500/10 text-slate-400 hover:text-rose-300 transition-colors"
-              title="تسجيل الخروج"
-              aria-label="تسجيل الخروج"
-            >
-              <LogOut size={16} />
-            </button>
+            <div className="flex-1 min-w-0"><div className="text-sm font-semibold text-slate-100 truncate">{user?.name}</div><div className="text-[11px] text-yellow-400/75 truncate">{user?.title || ROLE_LABELS[user?.role]}</div>{user?.department && <div className="text-[10px] text-slate-600 truncate mt-0.5">{user.department}</div>}</div>
+            <button data-testid="logout-btn" onClick={handleLogout} className="p-2 rounded-md hover:bg-rose-500/10 text-slate-400 hover:text-rose-300 transition-colors" title="تسجيل الخروج" aria-label="تسجيل الخروج"><LogOut size={16} /></button>
           </div>
         </div>
       </aside>
 
-      <main className="app-main flex-1 pr-72 min-h-screen">
-        <div className="px-8 py-6 max-w-[1600px] mx-auto">
-          <UniversalCardDetails>
-            <Outlet />
-          </UniversalCardDetails>
-        </div>
-      </main>
+      <main className="app-main flex-1 pr-72 min-h-screen"><div className="px-8 py-6 max-w-[1600px] mx-auto"><UniversalCardDetails><Outlet /></UniversalCardDetails></div></main>
     </div>
   );
 }
