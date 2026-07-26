@@ -22,7 +22,7 @@ const STATUS_LABEL = {
 
 export default function MeetingRequestsPage() {
   const { user } = useAuth();
-  const isExecutive = ["ceo", "admin", "tracker"].includes(user?.role);
+  const canDecide = ["ceo", "admin"].includes(user?.role);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [show, setShow] = useState(false);
@@ -76,6 +76,10 @@ export default function MeetingRequestsPage() {
   const openDetail = (item) => { setSelected(item); setBrief(null); };
 
   const decide = async (requestId, decision, newDate) => {
+    if (!canDecide) {
+      toast.error("اعتماد الطلبات وإعادة جدولتها من صلاحيات الرئيس التنفيذي ومدير المنصة فقط");
+      return;
+    }
     const note = decision === "rejected" ? window.prompt("سبب الرفض — اختياري:") || "" : "";
     try {
       const payload = { decision, note };
@@ -98,7 +102,7 @@ export default function MeetingRequestsPage() {
     }
   };
 
-  const executiveActions = (request) => isExecutive && request.status === "pending" ? (
+  const executiveActions = (request) => canDecide && request.status === "pending" ? (
     <div className="flex gap-2 flex-wrap">
       <button onClick={() => decide(request.id, "approved")} className="px-3 py-2 rounded bg-emerald-500/15 text-emerald-300 text-xs">اعتماد</button>
       <button onClick={() => decide(request.id, "rescheduled")} className="px-3 py-2 rounded bg-sky-500/15 text-sky-300 text-xs">إعادة جدولة</button>
@@ -117,11 +121,9 @@ export default function MeetingRequestsPage() {
         <div className="flex items-center gap-3 flex-wrap">
           <span className="px-3 py-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-xs font-bold flex items-center gap-2"><Database size={14}/> ARAAK CEO + Odoo</span>
           <button onClick={load} className="px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-yellow-300 flex items-center gap-2"><RefreshCw size={16}/> تحديث</button>
-          {!isExecutive && (
-            <button onClick={() => setShow(true)} className="px-5 py-2.5 rounded-lg bg-gradient-to-l from-yellow-500 to-yellow-600 text-black font-bold flex items-center gap-2">
-              <Plus size={18}/> طلب اجتماع جديد
-            </button>
-          )}
+          <button onClick={() => setShow(true)} className="px-5 py-2.5 rounded-lg bg-gradient-to-l from-yellow-500 to-yellow-600 text-black font-bold flex items-center gap-2">
+            <Plus size={18}/> طلب اجتماع جديد
+          </button>
         </div>
       </div>
 
@@ -151,7 +153,7 @@ export default function MeetingRequestsPage() {
                 </div>
                 {request.decision_note && <div className="mt-2 text-xs text-slate-400 bg-white/[0.02] rounded p-2">ملاحظة القرار: {request.decision_note}</div>}
               </div>
-              {isExecutive && request.status === "pending" && (
+              {canDecide && request.status === "pending" && (
                 <div className="flex gap-2 flex-wrap">
                   <button onClick={(event) => { event.stopPropagation(); decide(request.id, "approved"); }} className="px-3 py-2 rounded bg-emerald-500/15 text-emerald-300 text-xs hover:bg-emerald-500/25 flex items-center gap-1"><Check size={12}/> اعتماد</button>
                   <button onClick={(event) => { event.stopPropagation(); decide(request.id, "rescheduled"); }} className="px-3 py-2 rounded bg-sky-500/15 text-sky-300 text-xs hover:bg-sky-500/25 flex items-center gap-1"><CalIcon size={12}/> إعادة جدولة</button>
