@@ -159,9 +159,11 @@ export default function UniversalCardDetails({ children }) {
     const openCard = (card) => setDetail(getSnapshot(card, location.pathname));
 
     const handleClick = (event) => {
-      if (event.defaultPrevented || event.target.closest(INTERACTIVE_SELECTOR)) return;
+      if (event.defaultPrevented) return;
       const card = event.target.closest(CARD_SELECTOR);
-      if (!isCandidate(card, root)) return;
+      if (!isCandidate(card, root) || card.dataset.universalCardEnhanced !== 'true') return;
+      const interactive = event.target.closest(INTERACTIVE_SELECTOR);
+      if (interactive && interactive !== card) return;
       openCard(card);
     };
 
