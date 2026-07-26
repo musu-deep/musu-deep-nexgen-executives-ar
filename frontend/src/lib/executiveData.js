@@ -1,3 +1,6 @@
+import { getDemoOperationalData } from "../data/demoOperationalData";
+import { DATA_MODES, getDataMode, normalizeDataMode } from "./dataMode";
+
 const CLOSED_TASK_STATUSES = new Set(["completed", "cancelled"]);
 
 function asArray(value) {
@@ -131,30 +134,82 @@ export function buildDailyData({ projects: projectInput, tasks: taskInput, meeti
   };
 }
 
-export async function loadOperationalSources(api) {
+function demoSources(requestedMode, fallbackUsed = false, liveMetadata = {}) {
+  const data = getDemoOperationalData();
+  return {
+    ...data,
+    successful: 4,
+    successfulKeys: ["projects", "tasks", "meetings", "requests"],
+    total: 4,
+    isAvailable: true,
+    isLive: false,
+    isDemo: true,
+    isPartial: false,
+    requestedMode,
+    resolvedMode: DATA_MODES.DEMO,
+    fallbackUsed,
+    sourceState: fallbackUsed ? "auto_demo" : "demo",
+    ...liveMetadata,
+  };
+}
+
+async function loadLiveOperationalSources(api) {
   const requests = [
-    ["projects", api.get("/projects")],
-    ["tasks", api.get("/tasks")],
-    ["meetings", api.get("/meetings")],
-    ["requests", api.get("/meeting-requests")],
+    { key: "projects", promise: api.get("/projects") },
+    { key: "tasks", promise: api.get("/tasks") },
+    { key: "meetings", promise: api.get("/meetings") },
+    { key: "requests", promise: api.get("/meeting-requests") },
   ];
-  const settled = await Promise.allSettled(requests.map(([, promise]) => promise));
+  const settled = await Promise.allSettled(requests.map((request) => request.promise));
   const data = { projects: [], tasks: [], meetings: [], requests: [] };
-  let successful = 0;
+  const successfulKeys = [];
+  const failedKeys = [];
 
   settled.forEach((result, index) => {
-    const key = requests[index][0];
+    const key = requests[index].key;
     if (result.status === "fulfilled") {
       data[key] = asArray(result.value?.data);
-      successful += 1;
+      successfulKeys.push(key);
+    } else {
+      failedKeys.push(key);
     }
   });
 
+  const coreAvailable = successfulKeys.includes("projects") && successfulKeys.includes("tasks");
+  const isPartial = coreAvailable && successfulKeys.length < requests.length;
+
   return {
     ...data,
-    successful,
+    successful: successfulKeys.length,
+    successfulKeys,
+    failedKeys,
     total: requests.length,
-    isLive: successful >= 2,
-    isPartial: successful > 0 && successful < requests.length,
+    isAvailable: coreAvailable,
+    isLive: coreAvailable,
+    isDemo: false,
+    isPartial,
+    requestedMode: DATA_MODES.LIVE,
+    resolvedMode: coreAvailable ? DATA_MODES.LIVE : null,
+    fallbackUsed: false,
+    sourceState: coreAvailable ? (isPartial ? "partial" : "live") : "offline",
   };
+}
+
+export async function loadOperationalSources(api, requestedMode = getDataMode()) {
+  const mode = normalizeDataMode(requestedMode);
+
+  if (mode === DATA_MODES.DEMO) return demoSources(mode);
+
+  const live = await loadLiveOperationalSources(api);
+  if (live.isAvailable) return { ...live, requestedMode: mode };
+
+  if (mode === DATA_MODES.AUTO) {
+    return demoSources(mode, true, {
+      liveSuccessful: live.successful,
+      liveSuccessfulKeys: live.successfulKeys,
+      liveFailedKeys: live.failedKeys,
+    });
+  }
+
+  return { ...live, requestedMode: mode };
 }
