@@ -6,7 +6,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import ExecutiveLoginPage from "./pages/ExecutiveLoginPage";
-import ExecutiveDashboardPage from "./pages/ExecutiveDashboardPage";
+import RoleAwareDashboardPage from "./pages/RoleAwareDashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TasksPage from "./pages/TasksPage";
@@ -90,7 +90,7 @@ function AppRoutes() {
         <Route path="/login" element={<PublicOnly><ExecutiveLoginPage /></PublicOnly>} />
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<ExecutiveDashboardPage />} />
+          <Route path="/dashboard" element={<RoleAwareDashboardPage />} />
           <Route path="/daily-report" element={<ExecutiveDailyBriefPage />} />
           <Route path="/camera-monitoring" element={<CameraMonitoringPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
@@ -100,6 +100,7 @@ function AppRoutes() {
           <Route path="/legal-affairs" element={<OfficeUnitPage unit="legal" />} />
           <Route path="/presidential-advisor" element={<ProtectedRoute roles={["admin", "ceo"]}><OfficeUnitPage unit="advisor" /></ProtectedRoute>} />
           <Route path="/human-resources" element={<HumanResourcesPage />} />
+          <Route path="/hr" element={<HumanResourcesPage />} />
           <Route path="/quality-control" element={<QualityControlPage />} />
           <Route path="/meetings" element={<MeetingsPage />} />
           <Route path="/meeting-requests" element={<MeetingRequestsPage />} />
