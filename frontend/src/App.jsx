@@ -5,6 +5,7 @@ import { Sun, Moon } from "lucide-react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { canAccessPath } from "./lib/accessPolicy";
 import ExecutiveLoginPage from "./pages/ExecutiveLoginPage";
 import RoleAwareDashboardPage from "./pages/RoleAwareDashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
@@ -35,6 +36,7 @@ import "./araak-light.css";
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-slate-400" dir="rtl">
@@ -47,6 +49,7 @@ function ProtectedRoute({ children, roles }) {
   }
   if (!user) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />;
+  if (!canAccessPath(user, location.pathname)) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -63,13 +66,7 @@ function LoginAppearanceToggle() {
   if (location.pathname !== "/login") return null;
 
   return (
-    <button
-      type="button"
-      onClick={toggleMode}
-      className="theme-mode-toggle fixed top-5 left-5 z-[70] px-4 py-2.5 rounded-xl border border-white/10 bg-black/25 backdrop-blur-xl text-slate-200 flex items-center gap-2 text-sm font-bold shadow-xl"
-      aria-label={mode === "light" ? "تشغيل الوضع الليلي" : "تشغيل الوضع النهاري"}
-      title={mode === "light" ? "تشغيل الوضع الليلي" : "تشغيل الوضع النهاري"}
-    >
+    <button type="button" onClick={toggleMode} className="theme-mode-toggle fixed top-5 left-5 z-[70] px-4 py-2.5 rounded-xl border border-white/10 bg-black/25 backdrop-blur-xl text-slate-200 flex items-center gap-2 text-sm font-bold shadow-xl" aria-label={mode === "light" ? "تشغيل الوضع الليلي" : "تشغيل الوضع النهاري"} title={mode === "light" ? "تشغيل الوضع الليلي" : "تشغيل الوضع النهاري"}>
       {mode === "light" ? <Sun size={17} className="text-yellow-500" /> : <Moon size={17} className="text-indigo-300" />}
       {mode === "light" ? "نهاري" : "ليلي"}
     </button>
@@ -98,7 +95,7 @@ function AppRoutes() {
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/executive-secretariat" element={<OfficeUnitPage unit="secretariat" />} />
           <Route path="/legal-affairs" element={<OfficeUnitPage unit="legal" />} />
-          <Route path="/presidential-advisor" element={<ProtectedRoute roles={["admin", "ceo"]}><OfficeUnitPage unit="advisor" /></ProtectedRoute>} />
+          <Route path="/presidential-advisor" element={<OfficeUnitPage unit="advisor" />} />
           <Route path="/human-resources" element={<HumanResourcesPage />} />
           <Route path="/hr" element={<HumanResourcesPage />} />
           <Route path="/quality-control" element={<QualityControlPage />} />
@@ -108,13 +105,13 @@ function AppRoutes() {
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/voice" element={<ProtectedRoute roles={["ceo", "admin"]}><VoiceInputPage /></ProtectedRoute>} />
+          <Route path="/voice" element={<VoiceInputPage />} />
           <Route path="/ai-lounge" element={<AgentLoungePage />} />
-          <Route path="/odoo-integration" element={<ProtectedRoute roles={["admin", "ceo"]}><OdooIntegrationPage /></ProtectedRoute>} />
+          <Route path="/odoo-integration" element={<OdooIntegrationPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/team" element={<TeamPage />} />
-          <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminPage /></ProtectedRoute>} />
+          <Route path="/admin" element={<AdminPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
