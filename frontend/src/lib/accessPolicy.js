@@ -15,7 +15,7 @@ const AREA_MODULES = {
 
 const FULL_ONLY_MODULES = new Set([
   "daily_report", "camera_monitoring", "presidential_advisor", "voice",
-  "ai_lounge", "odoo_integration", "reports", "settings", "admin",
+  "ai_lounge", "odoo_integration", "reports", "settings",
 ]);
 
 const PATH_MODULES = [
@@ -64,6 +64,7 @@ export function allowedModulesForUser(user) {
 
 export function canAccessModule(user, module) {
   if (!user) return false;
+  if (module === "admin") return user?.role === "admin";
   if (isFullAccessUser(user)) return true;
   if (FULL_ONLY_MODULES.has(module)) return false;
   return allowedModulesForUser(user)?.has(module) || false;
