@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import api from "../lib/api";
 import { buildDashboardData, loadOperationalSources } from "../lib/executiveData";
+import { getDataMode, setDataMode as persistDataMode } from "../lib/dataMode";
+import { DataModeSelector, DataSourceBadge, DemoModeNotice } from "../components/DataModeControl";
 import { useAuth } from "../contexts/AuthContext";
 import {
   Activity, AlertTriangle, BarChart3, BriefcaseBusiness, CheckCircle2,
@@ -28,6 +30,14 @@ const STATUS_LABELS = {
   cancelled: "ملغاة",
 };
 
+const PROJECT_STATUS_LABELS = {
+  active: "نشط",
+  completed: "مكتمل",
+  delayed: "متعثر",
+  on_hold: "متوقف مؤقتًا",
+  planned: "مخطط",
+};
+
 function formatNumber(value) {
   return new Intl.NumberFormat("ar").format(Number(value || 0));
 }
@@ -37,15 +47,23 @@ export default function ExecutiveDashboardPage() {
   const [data, setData] = useState(EMPTY_DASHBOARD);
   const [loading, setLoading] = useState(true);
   const [sourceState, setSourceState] = useState("loading");
+  const [dataMode, setDataMode] = useState(() => getDataMode());
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
+    setSourceState("loading");
     try {
-      const sources = await loadOperationalSources(api);
-      if (!sources.isLive) throw new Error("Operational sources unavailable");
+      const sources = await loadOperationalSources(api, dataMode);
+      if (!sources.isAvailable) throw new Error("Operational sources unavailable");
+
       setData(buildDashboardData(sources.projects, sources.tasks));
-      setSourceState(sources.isPartial ? "partial" : "live");
-      if (sources.isPartial) toast.warning("تم تحديث المؤشرات من المصادر المتاحة؛ بعض الوحدات لم تستجب.");
+      setSourceState(sources.sourceState);
+
+      if (sources.sourceState === "partial") {
+        toast.warning("تم تحديث المؤشرات من المصادر المباشرة المتاحة؛ بعض الوحدات لم تستجب.");
+      } else if (sources.sourceState === "auto_demo") {
+        toast.warning("تعذر الاتصال بالبيانات الفعلية؛ تم الانتقال تلقائيًا إلى بيانات العرض التجريبي.");
+      }
     } catch (error) {
       console.error("Executive dashboard load failed", error);
       setData(EMPTY_DASHBOARD);
@@ -54,9 +72,14 @@ export default function ExecutiveDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dataMode]);
 
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
+
+  const handleModeChange = (nextMode) => {
+    const savedMode = persistDataMode(nextMode);
+    setDataMode(savedMode);
+  };
 
   const totals = data.totals || EMPTY_DASHBOARD.totals;
   const sectors = data.by_sector || [];
@@ -73,13 +96,16 @@ export default function ExecutiveDashboardPage() {
         <div>
           <div className="text-xs tracking-[0.14em] text-yellow-500/80">لوحة القيادة التنفيذية</div>
           <h1 className="font-heading text-4xl font-black mt-2">مرحبًا، {user?.name || "الرئيس التنفيذي"}</h1>
-          <p className="text-slate-500 text-sm mt-2">رؤية مباشرة من بيانات المشروعات والمهام المسجلة في النظام.</p>
+          <p className="text-slate-500 text-sm mt-2">رؤية موحدة لبيانات المشروعات والمهام والأداء والمخاطر التنفيذية.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <SourceBadge state={sourceState} />
+        <div className="flex items-center gap-3 flex-wrap">
+          <DataModeSelector value={dataMode} onChange={handleModeChange} />
+          <DataSourceBadge state={sourceState} />
           <button onClick={loadDashboard} className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-200 hover:text-yellow-300 flex items-center gap-2 text-sm font-bold"><RefreshCw size={16}/> تحديث البيانات</button>
         </div>
       </section>
+
+      <DemoModeNotice state={sourceState} />
 
       <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <Metric icon={<FolderKanban size={19}/>} label="إجمالي المشروعات" value={formatNumber(totals.projects)} />
@@ -125,17 +151,11 @@ export default function ExecutiveDashboardPage() {
         </div>
         <div className="glass-card p-6 xl:col-span-2">
           <h2 className="font-heading text-xl font-black mb-5">آخر المشروعات</h2>
-          <div className="space-y-3">{(data.recent_projects || []).length ? data.recent_projects.map((project) => <div key={project.id || project.name} className="p-4 rounded-xl bg-white/[0.025] border border-white/5 flex items-center justify-between gap-4"><div><div className="font-bold">{project.name}</div><div className="text-xs text-slate-500 mt-1">{SECTOR_LABELS[project.sector] || project.sector || "غير مصنف"}</div></div><div className="text-left"><div className="font-heading text-xl font-black text-yellow-300">{project.progress || 0}%</div><div className="text-[10px] text-slate-600">{project.status || "نشط"}</div></div></div>) : <EmptyState text="لا توجد مشروعات حديثة للعرض." />}</div>
+          <div className="space-y-3">{(data.recent_projects || []).length ? data.recent_projects.map((project) => <div key={project.id || project.name} className="p-4 rounded-xl bg-white/[0.025] border border-white/5 flex items-center justify-between gap-4"><div><div className="font-bold">{project.name}</div><div className="text-xs text-slate-500 mt-1">{SECTOR_LABELS[project.sector] || project.sector || "غير مصنف"}</div></div><div className="text-left"><div className="font-heading text-xl font-black text-yellow-300">{project.progress || 0}%</div><div className="text-[10px] text-slate-600">{PROJECT_STATUS_LABELS[project.status] || project.status || "نشط"}</div></div></div>) : <EmptyState text="لا توجد مشروعات حديثة للعرض." />}</div>
         </div>
       </section>
     </div>
   );
-}
-
-function SourceBadge({ state }) {
-  if (state === "live") return <span className="px-3 py-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-xs">بيانات مباشرة</span>;
-  if (state === "partial") return <span className="px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 text-xs">بيانات جزئية</span>;
-  return <span className="px-3 py-2 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-xs">المصدر غير متاح</span>;
 }
 
 function Metric({ icon, label, value, tone = "text-slate-100" }) {
