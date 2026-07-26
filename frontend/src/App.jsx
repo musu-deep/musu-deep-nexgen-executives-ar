@@ -12,6 +12,7 @@ import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TasksPage from "./pages/TasksPage";
 import ReportsPage from "./pages/ReportsPage";
 import TeamPage from "./pages/TeamPage";
+import HumanResourcesPage from "./pages/HumanResourcesPage";
 import AdminPage from "./pages/AdminPage";
 import MeetingsPage from "./pages/MeetingsPage";
 import MeetingRequestsPage from "./pages/MeetingRequestsPage";
@@ -98,7 +99,7 @@ function AppRoutes() {
           <Route path="/executive-secretariat" element={<OfficeUnitPage unit="secretariat" />} />
           <Route path="/legal-affairs" element={<OfficeUnitPage unit="legal" />} />
           <Route path="/presidential-advisor" element={<ProtectedRoute roles={["admin", "ceo"]}><OfficeUnitPage unit="advisor" /></ProtectedRoute>} />
-          <Route path="/human-resources" element={<OfficeUnitPage unit="hr" />} />
+          <Route path="/human-resources" element={<HumanResourcesPage />} />
           <Route path="/quality-control" element={<QualityControlPage />} />
           <Route path="/meetings" element={<MeetingsPage />} />
           <Route path="/meeting-requests" element={<MeetingRequestsPage />} />
