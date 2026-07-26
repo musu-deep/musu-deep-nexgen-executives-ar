@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import api from "../lib/api";
 import { buildDailyData, loadOperationalSources } from "../lib/executiveData";
+import { getDataMode, setDataMode as persistDataMode } from "../lib/dataMode";
+import { DataModeSelector, DataSourceBadge, DemoModeNotice } from "../components/DataModeControl";
 import { useAuth } from "../contexts/AuthContext";
 import {
   AlertTriangle, CalendarDays, CheckCircle2, ClipboardList, FileText,
@@ -15,15 +17,23 @@ export default function ExecutiveDailyBriefPage() {
   const [report, setReport] = useState(EMPTY_REPORT);
   const [loading, setLoading] = useState(true);
   const [sourceState, setSourceState] = useState("loading");
+  const [dataMode, setDataMode] = useState(() => getDataMode());
 
   const loadReport = useCallback(async () => {
     setLoading(true);
+    setSourceState("loading");
     try {
-      const sources = await loadOperationalSources(api);
-      if (!sources.isLive) throw new Error("Operational sources unavailable");
+      const sources = await loadOperationalSources(api, dataMode);
+      if (!sources.isAvailable) throw new Error("Operational sources unavailable");
+
       setReport(buildDailyData({ ...sources, user }));
-      setSourceState(sources.isPartial ? "partial" : "live");
-      if (sources.isPartial) toast.warning("تم إعداد الموجز من المصادر المتاحة؛ بعض الوحدات لم تستجب.");
+      setSourceState(sources.sourceState);
+
+      if (sources.sourceState === "partial") {
+        toast.warning("تم إعداد الموجز من المصادر المباشرة المتاحة؛ بعض الوحدات لم تستجب.");
+      } else if (sources.sourceState === "auto_demo") {
+        toast.warning("تعذر الاتصال بالبيانات الفعلية؛ تم إعداد الموجز من بيانات العرض التجريبي.");
+      }
     } catch (error) {
       console.error("Executive daily brief load failed", error);
       setReport(buildDailyData({ projects: [], tasks: [], meetings: [], requests: [], user }));
@@ -32,9 +42,14 @@ export default function ExecutiveDailyBriefPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [dataMode, user]);
 
   useEffect(() => { loadReport(); }, [loadReport]);
+
+  const handleModeChange = (nextMode) => {
+    const savedMode = persistDataMode(nextMode);
+    setDataMode(savedMode);
+  };
 
   if (loading) return <div className="space-y-5" dir="rtl"><div className="h-28 shimmer rounded-2xl"/><div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-28 shimmer rounded-2xl"/>)}</div><div className="h-64 shimmer rounded-2xl"/></div>;
 
@@ -50,14 +65,17 @@ export default function ExecutiveDailyBriefPage() {
           <p className="text-slate-500 text-sm mt-2">{generatedAt.toLocaleDateString("ar", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <SourceBadge state={sourceState} />
+          <DataModeSelector value={dataMode} onChange={handleModeChange} />
+          <DataSourceBadge state={sourceState} />
           <button onClick={loadReport} className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-200 hover:text-yellow-300 flex items-center gap-2 text-sm font-bold"><RefreshCw size={16}/> تحديث</button>
           <button onClick={() => window.print()} className="px-5 py-3 rounded-xl bg-yellow-500 text-black flex items-center gap-2 text-sm font-black"><Printer size={16}/> طباعة أو PDF</button>
         </div>
       </section>
 
+      <DemoModeNotice state={sourceState} />
+
       <section className="glass-card p-6 border-yellow-500/25 bg-yellow-500/[0.025]">
-        <div className="flex items-center justify-between gap-4 mb-4"><div className="flex items-center gap-2"><CheckCircle2 size={18} className="text-yellow-400"/><h2 className="font-heading text-xl font-black">الخلاصة التنفيذية</h2></div><span className="text-[10px] px-2 py-1 rounded-lg bg-yellow-500/10 text-yellow-300">محدث من النظام</span></div>
+        <div className="flex items-center justify-between gap-4 mb-4"><div className="flex items-center gap-2"><CheckCircle2 size={18} className="text-yellow-400"/><h2 className="font-heading text-xl font-black">الخلاصة التنفيذية</h2></div><span className="text-[10px] px-2 py-1 rounded-lg bg-yellow-500/10 text-yellow-300">مُنشأ من البيانات المعروضة</span></div>
         <p className="text-lg leading-9 text-slate-200 whitespace-pre-wrap">{report.ai_summary}</p>
       </section>
 
@@ -83,12 +101,6 @@ export default function ExecutiveDailyBriefPage() {
       </section>
     </div>
   );
-}
-
-function SourceBadge({ state }) {
-  if (state === "live") return <span className="px-3 py-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-xs">بيانات مباشرة</span>;
-  if (state === "partial") return <span className="px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 text-xs">بيانات جزئية</span>;
-  return <span className="px-3 py-2 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-xs">المصدر غير متاح</span>;
 }
 
 function Metric({ icon, label, value, tone = "text-slate-100" }) {
