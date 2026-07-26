@@ -13,6 +13,7 @@ import {
 
 import ARAAK_GROUP_LOGO from "../assets/araakGroupLogoData";
 import UserAvatar from "./UserAvatar";
+import UniversalCardDetails from "./UniversalCardDetails";
 
 const NAV = [
   { to: "/dashboard", icon: LayoutDashboard, label: "لوحة القيادة التنفيذية", testId: "nav-dashboard" },
@@ -162,7 +163,9 @@ export default function AppLayout() {
 
       <main className="app-main flex-1 pr-72 min-h-screen">
         <div className="px-8 py-6 max-w-[1600px] mx-auto">
-          <Outlet />
+          <UniversalCardDetails>
+            <Outlet />
+          </UniversalCardDetails>
         </div>
       </main>
     </div>

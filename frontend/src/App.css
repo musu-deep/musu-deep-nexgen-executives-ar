@@ -1,1 +1,73 @@
 .App { min-height: 100vh; }
+
+[data-universal-card-enhanced="true"] {
+  position: relative;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+[data-universal-card-enhanced="true"]:hover {
+  transform: translateY(-2px);
+  border-color: rgba(234, 179, 8, 0.28) !important;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(234, 179, 8, 0.035);
+}
+
+[data-universal-card-enhanced="true"]:focus-visible {
+  outline: 2px solid rgba(234, 179, 8, 0.72);
+  outline-offset: 3px;
+}
+
+[data-universal-card-enhanced="true"]::after {
+  content: "↗";
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(234, 179, 8, 0.18);
+  background: rgba(234, 179, 8, 0.08);
+  color: rgba(253, 224, 71, 0.9);
+  font-size: 12px;
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+}
+
+[data-universal-card-enhanced="true"]:hover::after,
+[data-universal-card-enhanced="true"]:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.universal-card-modal {
+  animation: universal-card-fade-in 160ms ease-out;
+}
+
+.universal-card-modal > section {
+  animation: universal-card-rise-in 220ms ease-out;
+}
+
+@keyframes universal-card-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes universal-card-rise-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-universal-card-enhanced="true"],
+  [data-universal-card-enhanced="true"]::after,
+  .universal-card-modal,
+  .universal-card-modal > section {
+    transition: none;
+    animation: none;
+  }
+}
