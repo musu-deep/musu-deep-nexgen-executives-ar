@@ -4,6 +4,8 @@ from __future__ import annotations
 import hashlib
 import hmac
 import os
+import re
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
@@ -17,8 +19,8 @@ os.environ.setdefault(
 )
 
 # Import the embedded runtime first so Motor is patched before the core backend
-# is loaded. Keep the stable embedded application mounted for all existing
-# routes, and expose Odoo-aware operational reads explicitly at this level.
+# is loaded. Existing non-operational modules remain mounted as a fallback,
+# while Vercel-sensitive reads are exposed explicitly at this top level.
 from api.backend import embedded_server
 from api.backend import odoo_server
 
@@ -44,10 +46,10 @@ USERS = [
     {"email": "quality@company.demo", "name": "عاصم الملاحمة", "role": "dev_manager", "title": "مدير التفتيش والرقابة والجودة", "department": "التفتيش والرقابة والجودة"},
     {"email": "steel.factory@company.demo", "name": "سامر الملاحمة", "role": "dev_manager", "title": "مدير مصنع الحديد", "department": "مصنع الحديد"},
     {"email": "commercial@company.demo", "name": "م. محمد شكاك", "role": "dev_manager", "title": "مسؤول المشتريات والمستودعات والشؤون التجارية", "department": "المشتريات والمستودعات"},
-    {"email": "factory@company.demo", "name": "م. عبد الرحمن الحسام", "role": "dev_manager", "title": "مدير أراك الوطنية والمصنع", "department": "المصنع وأراك الوطنية"},
+    {"email": "factory@company.demo", "name": "م. عبد الرحمن الحسام", "role": "dev_manager", "title": "مدير اراك الوطنية والمصنع", "department": "المصنع واراك الوطنية"},
     {"email": "technical.office@company.demo", "name": "م. إسلام محمد", "role": "dev_manager", "title": "مسؤول المكتب الفني", "department": "المكتب الفني"},
     {"email": "wholesale@company.demo", "name": "مدير مبيعات الجملة", "role": "dev_manager", "title": "مدير مبيعات الجملة", "department": "مبيعات الجملة"},
-    {"email": "stores@company.demo", "name": "م. طه الأهدل", "role": "dev_manager", "title": "مدير أراك ستورز والتجارة الإلكترونية", "department": "أراك ستورز"},
+    {"email": "stores@company.demo", "name": "م. طه الأهدل", "role": "dev_manager", "title": "مدير اراك ستورز والتجارة الإلكترونية", "department": "اراك ستورز"},
 ]
 
 GROUPS = [
@@ -58,6 +60,15 @@ GROUPS = [
         "emails": ["hr@company.demo", "finance@company.demo", "quality@company.demo", "manager@company.demo"],
     },
 ]
+
+SECTOR_LABELS = {
+    "corporate": "الحوكمة والقيادة التنفيذية",
+    "digital": "التقنية والتحول الرقمي",
+    "development": "التنمية والاستشارات",
+    "academy": "التعليم والتدريب",
+    "arak_development": "التشغيل والصناعة والتجارة",
+    "investment": "الاستثمار والشراكات الدولية",
+}
 
 
 class LoginPayload(BaseModel):
@@ -97,6 +108,201 @@ async def ensure_users() -> None:
             })
 
 
+def _extract_marker(text: Any, marker: str) -> str:
+    value = str(text or "")
+    match = re.search(rf"{re.escape(marker)}\s*[:：]\s*([^\s<]+)", value, flags=re.IGNORECASE)
+    return match.group(1).strip() if match else ""
+
+
+def _extract_entity(text: Any) -> str:
+    value = str(text or "")
+    patterns = (
+        r"الكيان المسؤول\s*[:：]\s*(.+?)(?=\s+القطاع التشغيلي|\s+رمز قطاع|\s+رمز المحفظة|$)",
+        r"Entity\s*[:：]\s*(.+?)(?=\s+Sector|\s+Portfolio|$)",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, value, flags=re.IGNORECASE)
+        if match:
+            return match.group(1).strip(" .،")
+    return ""
+
+
+def _normalise_sector(project: dict[str, Any]) -> str:
+    existing = str(project.get("sector") or "").strip().lower()
+    description = str(project.get("description") or "")
+    marker = _extract_marker(description, "NEXGEN_SECTOR").lower()
+    if marker in SECTOR_LABELS:
+        return marker
+    if existing in SECTOR_LABELS and existing != "corporate":
+        return existing
+
+    text = f"{project.get('name', '')} {description}".lower()
+    aliases = (
+        (("استثمار", "شراكات دولية", "investment"), "investment"),
+        (("رقمي", "تقنية", "ذكاء مؤسسي", "digital"), "digital"),
+        (("أكاديمية", "تعليم", "تدريب", "مدارس"), "academy"),
+        (("تنمية", "استشارات", "محتوى مؤسسي", "مراقي"), "development"),
+        (("مصنع", "إنتاج", "مخزون", "متجر", "ستورز", "لوجستيك", "مستودعات", "مقاولات", "عقار"), "arak_development"),
+    )
+    for tokens, sector in aliases:
+        if any(token in text for token in tokens):
+            return sector
+    return existing if existing in SECTOR_LABELS else "corporate"
+
+
+def _enrich_task(task: dict[str, Any]) -> dict[str, Any]:
+    item = dict(task)
+    stage = str(item.get("odoo_stage") or "").strip().lower()
+    status = str(item.get("status") or "pending")
+    progress = int(item.get("progress", 0) or 0)
+
+    if any(token in stage for token in ("مكتمل", "منجز", "مغلق", "done", "completed", "closed")):
+        status, progress = "completed", 100
+    elif status == "delayed":
+        progress = max(progress, 35)
+    elif any(token in stage for token in ("مراجعة", "اعتماد", "review", "approval")):
+        status, progress = "awaiting_approval", max(progress, 80)
+    elif any(token in stage for token in ("بانتظار قرار", "انتظار", "waiting", "decision")):
+        status, progress = "awaiting_approval", max(progress, 65)
+    elif any(token in stage for token in ("قيد التنفيذ", "in progress", "progress")):
+        status, progress = "in_progress", max(progress, 50)
+    elif any(token in stage for token in ("جديد", "new", "todo")):
+        status, progress = "pending", progress
+
+    item["status"] = status
+    item["progress"] = max(0, min(100, progress))
+    return item
+
+
+def _parse_datetime(value: Any) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
+def _enrich_bundle(
+    projects: list[dict[str, Any]],
+    tasks: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    enriched_projects = [dict(project) for project in projects]
+    enriched_tasks = [_enrich_task(task) for task in tasks]
+
+    by_project: dict[str, list[dict[str, Any]]] = {}
+    sector_by_project: dict[str, str] = {}
+
+    for project in enriched_projects:
+        project["sector"] = _normalise_sector(project)
+        project["sector_label"] = SECTOR_LABELS.get(project["sector"], project["sector"])
+        entity = _extract_entity(project.get("description"))
+        if entity:
+            project["entity_name"] = entity
+        sector_by_project[str(project.get("id"))] = project["sector"]
+        by_project[str(project.get("id"))] = []
+
+    for task in enriched_tasks:
+        project_id = str(task.get("project_id") or "")
+        by_project.setdefault(project_id, []).append(task)
+        if project_id in sector_by_project:
+            task["sector"] = sector_by_project[project_id]
+            task["sector_label"] = SECTOR_LABELS.get(task["sector"], task["sector"])
+
+    now = datetime.now(timezone.utc)
+    for project in enriched_projects:
+        linked = by_project.get(str(project.get("id")), [])
+        if linked:
+            project["task_count"] = len(linked)
+            project["completed_task_count"] = sum(1 for task in linked if task.get("status") == "completed")
+            project["delayed_task_count"] = sum(1 for task in linked if task.get("status") == "delayed")
+            project["awaiting_decision_count"] = sum(1 for task in linked if task.get("status") == "awaiting_approval")
+            project["progress"] = round(
+                sum(int(task.get("progress", 0) or 0) for task in linked) / len(linked)
+            )
+            if project["completed_task_count"] == len(linked):
+                project["status"] = "completed"
+                project["progress"] = 100
+
+        end_date = _parse_datetime(project.get("end_date"))
+        overdue_project = bool(
+            end_date and end_date < now and project.get("status") not in {"completed", "cancelled"}
+        )
+        if project.get("status") == "completed":
+            rag = "green"
+        elif project.get("status") == "cancelled":
+            rag = "gray"
+        elif overdue_project or project.get("delayed_task_count", 0) > 0:
+            rag = "red"
+        elif project.get("awaiting_decision_count", 0) > 0:
+            rag = "amber"
+        elif int(project.get("progress", 0) or 0) >= 70:
+            rag = "green"
+        else:
+            rag = "amber"
+        project["rag"] = rag
+
+    return enriched_projects, enriched_tasks
+
+
+async def _operational_bundle(user: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    projects = await odoo_server.operational_projects(user)
+    tasks = await odoo_server.operational_tasks(user)
+    return _enrich_bundle(projects, tasks)
+
+
+def _dashboard_payload(
+    projects: list[dict[str, Any]],
+    tasks: list[dict[str, Any]],
+) -> dict[str, Any]:
+    rag_count = {"red": 0, "amber": 0, "green": 0, "gray": 0}
+    by_sector: dict[str, dict[str, int]] = {}
+    task_status: dict[str, int] = {}
+
+    for project in projects:
+        rag = str(project.get("rag") or "amber")
+        rag_count[rag] = rag_count.get(rag, 0) + 1
+        sector = str(project.get("sector") or "corporate")
+        by_sector.setdefault(sector, {"count": 0, "progress_sum": 0})
+        by_sector[sector]["count"] += 1
+        by_sector[sector]["progress_sum"] += int(project.get("progress", 0) or 0)
+
+    for task in tasks:
+        status = str(task.get("status") or "pending")
+        task_status[status] = task_status.get(status, 0) + 1
+
+    total_progress = sum(int(project.get("progress", 0) or 0) for project in projects)
+    return {
+        "source": os.getenv("OPERATIONAL_DATA_SOURCE", "mongo").strip().lower(),
+        "totals": {
+            "projects": len(projects),
+            "active_projects": sum(1 for project in projects if project.get("status") == "active"),
+            "completed_projects": sum(1 for project in projects if project.get("status") == "completed"),
+            "tasks": len(tasks),
+            "overdue_tasks": sum(1 for task in tasks if task.get("status") == "delayed"),
+            "avg_progress": round(total_progress / max(len(projects), 1)),
+            "total_budget": sum(float(project.get("budget", 0) or 0) for project in projects),
+        },
+        "rag": rag_count,
+        "by_sector": [
+            {
+                "sector": sector,
+                "sector_label": SECTOR_LABELS.get(sector, sector),
+                "count": values["count"],
+                "avg_progress": round(values["progress_sum"] / max(values["count"], 1)),
+            }
+            for sector, values in by_sector.items()
+        ],
+        "task_status": task_status,
+        "recent_projects": sorted(
+            projects,
+            key=lambda item: item.get("updated_at") or item.get("created_at") or "",
+            reverse=True,
+        )[:6],
+    }
+
+
 @app.on_event("startup")
 async def initialize_vercel_runtime() -> None:
     await embedded_server.initialize_embedded_runtime()
@@ -110,7 +316,7 @@ async def health():
         "status": "ready",
         "service": "NEXGEN EXECUTIVES",
         "runtime": "vercel-python",
-        "operational_gateway": "embedded-core-with-odoo-overrides",
+        "operational_gateway": "odoo-portfolio-intelligence",
     }
 
 
@@ -163,19 +369,46 @@ async def group_accounts(payload: GroupPayload):
 
 
 # ---------------------------------------------------------------------------
-# Odoo-aware operational overrides
+# Explicit Vercel-safe office reads
+# ---------------------------------------------------------------------------
+
+@app.get("/api/meetings")
+async def meetings(request: Request):
+    user = await current_user_from_request(request)
+    query = (
+        {}
+        if user.get("role") in {"admin", "ceo", "tracker"}
+        else {"$or": [{"attendee_ids": user["id"]}, {"organizer_id": user["id"]}]}
+    )
+    return await core.db.meetings.find(query, {"_id": 0}).sort("date", -1).to_list(500)
+
+
+@app.get("/api/meeting-requests")
+async def meeting_requests(request: Request):
+    user = await current_user_from_request(request)
+    query = (
+        {}
+        if user.get("role") in {"admin", "ceo", "tracker"}
+        else {"requester_id": user["id"]}
+    )
+    return await core.db.meeting_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+
+# ---------------------------------------------------------------------------
+# Odoo-aware operational overrides and portfolio intelligence
 # ---------------------------------------------------------------------------
 
 @app.get("/api/projects")
 async def operational_projects(request: Request):
     user = await current_user_from_request(request)
-    return await odoo_server.operational_projects(user)
+    projects, _ = await _operational_bundle(user)
+    return projects
 
 
 @app.get("/api/projects/{project_id}")
 async def operational_project(project_id: str, request: Request):
     user = await current_user_from_request(request)
-    projects = await odoo_server.operational_projects(user)
+    projects, _ = await _operational_bundle(user)
     project = next((item for item in projects if str(item.get("id")) == project_id), None)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -185,13 +418,17 @@ async def operational_project(project_id: str, request: Request):
 @app.get("/api/tasks")
 async def operational_tasks(request: Request, project_id: Optional[str] = None):
     user = await current_user_from_request(request)
-    return await odoo_server.operational_tasks(user, project_id)
+    _, tasks = await _operational_bundle(user)
+    if project_id:
+        tasks = [task for task in tasks if str(task.get("project_id")) == project_id]
+    return tasks
 
 
 @app.get("/api/dashboard")
 async def operational_dashboard(request: Request):
     user = await current_user_from_request(request)
-    return await odoo_server.operational_dashboard(user)
+    projects, tasks = await _operational_bundle(user)
+    return _dashboard_payload(projects, tasks)
 
 
 @app.get("/api/odoo/status")
@@ -212,7 +449,10 @@ async def odoo_test(request: Request):
 async def direct_odoo_projects(request: Request, limit: int = Query(default=500, ge=1, le=2000)):
     user = await current_user_from_request(request)
     try:
-        return await odoo_server._odoo_projects(user, limit=limit)
+        projects = await odoo_server._odoo_projects(user, limit=limit)
+        tasks = await odoo_server._odoo_tasks(user, limit=5000)
+        enriched, _ = _enrich_bundle(projects, tasks)
+        return enriched
     except Exception as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -225,7 +465,10 @@ async def direct_odoo_tasks(
 ):
     user = await current_user_from_request(request)
     try:
-        return await odoo_server._odoo_tasks(user, project_id=project_id, limit=limit)
+        projects = await odoo_server._odoo_projects(user, limit=2000)
+        tasks = await odoo_server._odoo_tasks(user, project_id=project_id, limit=limit)
+        _, enriched = _enrich_bundle(projects, tasks)
+        return enriched
     except Exception as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -235,6 +478,5 @@ async def openapi_schema():
     return app.openapi()
 
 
-# Keep the stable embedded application available for theme, meetings,
-# requests, documents, settings, writes, and every route not overridden above.
+# Keep all write routes and modules not explicitly handled above available.
 app.mount("/", backend_app)
