@@ -29,6 +29,8 @@ import AgentLoungePage from "./pages/AgentLoungePage";
 import OfficeUnitPage from "./pages/OfficeUnitPage";
 import QualityControlPage from "./pages/QualityControlPage";
 import CameraMonitoringPage from "./pages/CameraMonitoringPage";
+import OpportunityIntelligencePage from "./pages/OpportunityIntelligencePage";
+import PricingIntelligencePage from "./pages/PricingIntelligencePage";
 import AppLayout from "./components/AppLayout";
 import ArabicLocalization from "./components/ArabicLocalization";
 import "./App.css";
@@ -96,6 +98,8 @@ function AppRoutes() {
           <Route path="/executive-secretariat" element={<OfficeUnitPage unit="secretariat" />} />
           <Route path="/legal-affairs" element={<OfficeUnitPage unit="legal" />} />
           <Route path="/presidential-advisor" element={<OfficeUnitPage unit="advisor" />} />
+          <Route path="/opportunity-intelligence" element={<OpportunityIntelligencePage />} />
+          <Route path="/pricing-intelligence" element={<PricingIntelligencePage />} />
           <Route path="/human-resources" element={<HumanResourcesPage />} />
           <Route path="/hr" element={<HumanResourcesPage />} />
           <Route path="/quality-control" element={<QualityControlPage />} />
