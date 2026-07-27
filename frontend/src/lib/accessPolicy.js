@@ -16,6 +16,7 @@ const AREA_MODULES = {
 const FULL_ONLY_MODULES = new Set([
   "daily_report", "camera_monitoring", "presidential_advisor", "voice",
   "ai_lounge", "odoo_integration", "reports", "settings",
+  "opportunity_intelligence", "pricing_intelligence",
 ]);
 
 const PATH_MODULES = [
@@ -28,6 +29,8 @@ const PATH_MODULES = [
   [/^\/legal-affairs(?:\/.*)?$/, "legal_affairs"], [/^\/quality-control(?:\/.*)?$/, "quality_control"],
   [/^\/documents(?:\/.*)?$/, "documents"], [/^\/daily-report(?:\/.*)?$/, "daily_report"],
   [/^\/camera-monitoring(?:\/.*)?$/, "camera_monitoring"], [/^\/presidential-advisor(?:\/.*)?$/, "presidential_advisor"],
+  [/^\/opportunity-intelligence(?:\/.*)?$/, "opportunity_intelligence"],
+  [/^\/pricing-intelligence(?:\/.*)?$/, "pricing_intelligence"],
   [/^\/voice(?:\/.*)?$/, "voice"], [/^\/ai-lounge(?:\/.*)?$/, "ai_lounge"],
   [/^\/odoo-integration(?:\/.*)?$/, "odoo_integration"], [/^\/reports(?:\/.*)?$/, "reports"],
   [/^\/admin(?:\/.*)?$/, "admin"],
