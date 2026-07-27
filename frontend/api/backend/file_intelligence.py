@@ -263,7 +263,7 @@ def analyse_document_text(title: str, description: str, text: str, purpose: str 
             "مراجعة نطاق الملف وتحديد المسؤول التنفيذي.",
             "التحقق من المواعيد والقيم والافتراضات قبل اعتماد القرار.",
         ],
-        "risks": ([{"level": risk_level, "risk": f"رُصدت مؤشرات تحتاج مراجعة: {،.join(risks[:6])}."}] if risks else []),
+        "risks": ([{"level": risk_level, "risk": f"رُصدت مؤشرات تحتاج مراجعة: {'، '.join(risks[:6])}."}] if risks else []),
         "important_clauses": [
             "النطاق والمخرجات",
             "القيمة أو التكلفة وشروط الدفع",
