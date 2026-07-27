@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api, { SECTOR_LABELS, STATUS_LABELS, PRIORITY_LABELS } from "../lib/api";
 import RAGBadge from "../components/RAGBadge";
+import PricingReferralButton from "../components/PricingReferralButton";
 import { Link } from "react-router-dom";
 import { Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
@@ -110,6 +111,9 @@ export default function ProjectsPage() {
               <div className="mt-4 flex items-center justify-between text-[11px] text-slate-500">
                 <span className="px-2 py-1 rounded bg-white/5">{STATUS_LABELS[project.status]}</span>
                 <span className="px-2 py-1 rounded bg-white/5">الأولوية: {PRIORITY_LABELS[project.priority]}</span>
+              </div>
+              <div className="mt-3 border-t border-white/5 pt-3">
+                <PricingReferralButton sourceType="project" record={project} compact />
               </div>
             </Link>
           ))}
