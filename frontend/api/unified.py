@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 from urllib.parse import parse_qs
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 
 import api.index as index_module
 
@@ -67,7 +67,7 @@ async def ensure_hosted_directory() -> None:
         _directory_ready = True
 
 
-async def hosted_get_current_user(request):
+async def hosted_get_current_user(request: Request):
     """Validate a signed session without relying on one serverless instance."""
     token = request.cookies.get("access_token")
     if not token:
