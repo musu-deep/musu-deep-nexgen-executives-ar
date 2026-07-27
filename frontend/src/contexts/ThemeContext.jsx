@@ -3,6 +3,10 @@ import api from "../lib/api";
 
 const ThemeContext = createContext(null);
 const COLOR_MODE_KEY = "araak_color_mode";
+const ACTIVE_THEME_KEY = "araak_active_theme";
+const TOKEN_KEY = "arak_token";
+const SESSION_VERSION_KEY = "arak_session_version";
+const SESSION_VERSION = "hosted-api-resilient-fallback-v9";
 
 export const THEMES = {
   luxury: {
@@ -49,12 +53,30 @@ function readInitialMode() {
   return saved === "light" || saved === "dark" ? saved : "dark";
 }
 
+function readInitialTheme() {
+  if (typeof window === "undefined") return "luxury";
+  const saved = window.localStorage.getItem(ACTIVE_THEME_KEY);
+  return saved && THEMES[saved] ? saved : "luxury";
+}
+
 export const ThemeProvider = ({ children }) => {
-  const [active, setActive] = useState("luxury");
+  const [active, setActive] = useState(readInitialTheme);
   const [mode, setModeState] = useState(readInitialMode);
 
   useEffect(() => {
-    api.get("/theme").then((response) => setActive(response.data?.active_theme || "luxury")).catch(() => {});
+    const token = window.localStorage.getItem(TOKEN_KEY);
+    const sessionVersion = window.localStorage.getItem(SESSION_VERSION_KEY);
+    if (!token || sessionVersion !== SESSION_VERSION) return;
+
+    api.get("/theme")
+      .then((response) => {
+        const nextTheme = response.data?.active_theme || "luxury";
+        if (THEMES[nextTheme]) {
+          setActive(nextTheme);
+          window.localStorage.setItem(ACTIVE_THEME_KEY, nextTheme);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -98,11 +120,17 @@ export const ThemeProvider = ({ children }) => {
     }
 
     window.localStorage.setItem(COLOR_MODE_KEY, mode);
+    window.localStorage.setItem(ACTIVE_THEME_KEY, active);
   }, [active, mode]);
 
   const change = async (name) => {
+    if (!THEMES[name]) return;
     setActive(name);
-    try { await api.put("/theme", { active_theme: name }); } catch {}
+    window.localStorage.setItem(ACTIVE_THEME_KEY, name);
+    try {
+      const token = window.localStorage.getItem(TOKEN_KEY);
+      if (token) await api.put("/theme", { active_theme: name });
+    } catch {}
   };
 
   const setMode = (nextMode) => {
