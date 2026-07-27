@@ -6,7 +6,7 @@ const PROFILE_KEY = "arak_user_profile";
 const TOKEN_KEY = "arak_token";
 const SESSION_VERSION_KEY = "arak_session_version";
 const SESSION_VERSION = "hosted-file-intelligence-v10";
-const BUILD_RELEASE = "ceo-office-file-opportunity-pricing-intelligence-2026-07-27-v10";
+const BUILD_RELEASE = "ceo-office-institutional-pricing-intake-2026-07-27-v11";
 
 if (typeof window !== "undefined") {
   window.__ARAK_BUILD_RELEASE__ = BUILD_RELEASE;
