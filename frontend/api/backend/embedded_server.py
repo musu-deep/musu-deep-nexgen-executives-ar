@@ -21,7 +21,9 @@ os.environ.setdefault("DB_NAME", "araak_ceo_local")
 
 from . import server as core_server  # noqa: E402
 from . import odoo_server  # noqa: E402
+from . import advanced_intelligence  # noqa: E402
 from .advanced_intelligence import register_advanced_intelligence_routes  # noqa: E402
+from .pricing_intake import institutional_pricing_analysis, register_pricing_intake_routes  # noqa: E402
 from .hr_gateway import register_hr_routes  # noqa: E402
 from .office_gateway import register_office_routes  # noqa: E402
 from .office_alias import register_office_alias_routes  # noqa: E402
@@ -29,7 +31,10 @@ from .workflow_gateway import register_workflow_routes  # noqa: E402
 from .workflow_alias import register_workflow_alias_routes  # noqa: E402
 
 app = odoo_server.app
+# Keep legacy analysis route compatible while applying institutional language.
+advanced_intelligence.analyse_pricing_documents = institutional_pricing_analysis
 register_advanced_intelligence_routes(app, core_server)
+register_pricing_intake_routes(app, core_server)
 register_hr_routes(app, core_server, odoo_server)
 register_office_routes(app, core_server, odoo_server)
 register_office_alias_routes(app, core_server, odoo_server)
