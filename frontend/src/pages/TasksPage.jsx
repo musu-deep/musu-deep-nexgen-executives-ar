@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api, { PRIORITY_LABELS, SECTOR_LABELS } from "../lib/api";
+import PricingReferralButton from "../components/PricingReferralButton";
 import { Plus, X, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -155,6 +156,7 @@ export default function TasksPage() {
                             ← {candidate.label}
                           </button>
                         ))}
+                        <PricingReferralButton sourceType="task" record={task} compact reviewMode={task.status === "completed" ? "retrospective" : "active"} />
                       </div>
                     </div>
                   ))}
