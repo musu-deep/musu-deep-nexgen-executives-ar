@@ -27,6 +27,7 @@ import OdooIntegrationPage from "./pages/OdooIntegrationPage";
 import ExecutiveDailyBriefPage from "./pages/ExecutiveDailyBriefPage";
 import AgentLoungePage from "./pages/AgentLoungePage";
 import OfficeUnitPage from "./pages/OfficeUnitPage";
+import AdvisorWorkspacePage from "./pages/AdvisorWorkspacePage";
 import QualityControlPage from "./pages/QualityControlPage";
 import CameraMonitoringPage from "./pages/CameraMonitoringPage";
 import OpportunityIntelligencePage from "./pages/OpportunityIntelligencePage";
@@ -97,7 +98,7 @@ function AppRoutes() {
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/executive-secretariat" element={<OfficeUnitPage unit="secretariat" />} />
           <Route path="/legal-affairs" element={<OfficeUnitPage unit="legal" />} />
-          <Route path="/presidential-advisor" element={<OfficeUnitPage unit="advisor" />} />
+          <Route path="/presidential-advisor" element={<AdvisorWorkspacePage />} />
           <Route path="/opportunity-intelligence" element={<OpportunityIntelligencePage />} />
           <Route path="/pricing-intelligence" element={<PricingIntelligencePage />} />
           <Route path="/human-resources" element={<HumanResourcesPage />} />
