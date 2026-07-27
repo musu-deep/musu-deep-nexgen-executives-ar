@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { FileText, UploadCloud, X } from "lucide-react";
+import { toast } from "sonner";
 import { INTELLIGENCE_FILE_ACCEPT, formatFileSize, validateIntelligenceFiles } from "../lib/intelligenceFiles";
 
 export default function IntelligenceFilePicker({ files = [], onChange, multiple = true, compact = false }) {
@@ -9,6 +10,8 @@ export default function IntelligenceFilePicker({ files = [], onChange, multiple 
     try {
       const selected = validateIntelligenceFiles(event.target.files);
       onChange(multiple ? selected : selected.slice(0, 1));
+    } catch (error) {
+      toast.error(error?.message || "تعذر قبول الملف المحدد");
     } finally {
       event.target.value = "";
     }
