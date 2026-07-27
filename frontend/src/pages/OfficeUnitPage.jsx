@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -13,9 +14,11 @@ import {
   Landmark,
   MessageSquareText,
   Plus,
+  Radar,
   Scale,
   Search,
   ShieldCheck,
+  Tag,
   UserCog,
   UserRoundCog,
   UsersRound,
@@ -215,6 +218,7 @@ function loadRecords(unit, defaults) {
 }
 
 export default function OfficeUnitPage({ unit }) {
+  const navigate = useNavigate();
   const config = UNIT_CONFIG[unit] || UNIT_CONFIG.secretariat;
   const PageIcon = config.icon;
   const RecordIcon = UNIT_ICONS[unit] || FileText;
@@ -306,12 +310,34 @@ export default function OfficeUnitPage({ unit }) {
           </h1>
           <p className="text-slate-500 text-sm mt-2 max-w-4xl leading-relaxed">{config.description}</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-5 py-3 rounded-xl bg-yellow-500 text-black font-bold flex items-center gap-2 hover:bg-yellow-400 transition-colors"
-        >
-          <Plus size={17} /> {config.addLabel}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowModal(true)}
+            className="px-5 py-3 rounded-xl bg-yellow-500 text-black font-bold flex items-center gap-2 hover:bg-yellow-400 transition-colors"
+          >
+            <Plus size={17} /> {config.addLabel}
+          </button>
+          {unit === "advisor" && (
+            <>
+              <button
+                type="button"
+                data-testid="opportunity-intelligence-btn"
+                onClick={() => navigate("/opportunity-intelligence")}
+                className="px-5 py-3 rounded-xl border border-cyan-500/35 bg-cyan-500/10 text-cyan-200 font-bold flex items-center gap-2 hover:bg-cyan-500/20 transition-colors"
+              >
+                <Radar size={17} /> دراسة الفرص والعروض
+              </button>
+              <button
+                type="button"
+                data-testid="pricing-intelligence-btn"
+                onClick={() => navigate("/pricing-intelligence")}
+                className="px-5 py-3 rounded-xl border border-yellow-500/45 bg-yellow-500/10 text-yellow-300 font-bold flex items-center gap-2 hover:bg-yellow-500 hover:text-black transition-colors"
+              >
+                <Tag size={17} /> التسعير
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
