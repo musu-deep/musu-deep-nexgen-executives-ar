@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from urllib.parse import parse_qs
 
 from fastapi import Depends, HTTPException, Request
@@ -145,10 +145,69 @@ async def safe_items(collection_name: str, query: dict | None = None, limit: int
         return []
 
 
-# These two aggregation endpoints are registered after the index module has
-# mounted its catch-all application. Move them to the beginning of the route
-# table so the catch-all mount cannot swallow them.
+# Hosted aggregation and presence endpoints must be registered before the
+# mounted catch-all application so they cannot be swallowed by it.
 route_marker = len(outer_app.router.routes)
+
+
+@outer_app.post("/api/presence/heartbeat")
+async def hosted_presence_heartbeat(user=Depends(hosted_get_current_user)):
+    now = datetime.now(timezone.utc)
+    email = str(user.get("email") or "").strip().lower()
+    identity = email or str(user.get("id") or "")
+    if not identity:
+        raise HTTPException(status_code=400, detail="User identity is unavailable")
+
+    presence = {
+        "id": user.get("id") or identity,
+        "email": email,
+        "name": user.get("name") or "مستخدم المنصة",
+        "title": user.get("title") or user.get("role") or "مستخدم",
+        "role": user.get("role"),
+        "department": user.get("department"),
+        "avatar": user.get("avatar") or user.get("avatar_url") or user.get("photo") or user.get("photo_url"),
+        "last_seen": now.isoformat(),
+    }
+    await core.db.platform_presence.update_one(
+        {"identity": identity},
+        {"$set": {**presence, "identity": identity}},
+        upsert=True,
+    )
+    return {"ok": True, "last_seen": presence["last_seen"]}
+
+
+@outer_app.get("/api/presence/online")
+async def hosted_online_users(user=Depends(hosted_get_current_user)):
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(seconds=150)
+    records = await safe_items("platform_presence", limit=200)
+    online = []
+
+    for record in records:
+        try:
+            last_seen = parse_datetime(record.get("last_seen"))
+        except (TypeError, ValueError):
+            continue
+        if last_seen < cutoff:
+            continue
+        online.append({
+            "id": record.get("id"),
+            "email": record.get("email"),
+            "name": record.get("name") or "مستخدم المنصة",
+            "title": record.get("title") or "مستخدم",
+            "role": record.get("role"),
+            "department": record.get("department"),
+            "avatar": record.get("avatar"),
+            "last_seen": last_seen.isoformat(),
+            "is_current": str(record.get("email") or "").lower() == str(user.get("email") or "").lower(),
+        })
+
+    online.sort(key=lambda item: (not item.get("is_current", False), item.get("name", "")))
+    return {
+        "count": len(online),
+        "users": online,
+        "generated_at": now.isoformat(),
+    }
 
 
 @outer_app.get("/api/dashboard")
@@ -225,7 +284,7 @@ async def hosted_daily_report(user=Depends(hosted_get_current_user)):
     today_meetings = []
     for meeting in meetings:
         try:
-            if parse_datetime(meeting.get("date")) .date() == now.date():
+            if parse_datetime(meeting.get("date")).date() == now.date():
                 today_meetings.append(meeting)
         except (TypeError, ValueError):
             continue
