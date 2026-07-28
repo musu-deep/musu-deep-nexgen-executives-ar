@@ -2,7 +2,7 @@ import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
-import { ROLE_LABELS } from "../lib/api";
+import api, { ROLE_LABELS } from "../lib/api";
 import { canAccessModule, isFullAccessUser } from "../lib/accessPolicy";
 import {
   LayoutDashboard, FolderKanban, ListChecks, BarChart3, Users,
@@ -39,6 +39,89 @@ const NAV = [
   { to: "/notifications", module: "notifications", icon: Bell, label: "تنبيهاتي", executiveLabel: "الإشعارات", testId: "nav-notifications" },
   { to: "/settings", module: "settings", icon: Settings, label: "إعداداتي", executiveLabel: "الإعدادات", testId: "nav-settings" },
 ];
+
+function OnlineUsersPanel({ currentUser }) {
+  const [onlineUsers, setOnlineUsers] = React.useState(currentUser ? [currentUser] : []);
+  const [synced, setSynced] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const syncPresence = async () => {
+      try {
+        await api.post("/presence/heartbeat");
+        const response = await api.get("/presence/online");
+        const users = Array.isArray(response.data?.users) ? response.data.users : [];
+        if (!cancelled) {
+          setOnlineUsers(users.length ? users : (currentUser ? [currentUser] : []));
+          setSynced(true);
+        }
+      } catch (error) {
+        console.warn("Presence sync unavailable", error);
+        if (!cancelled) {
+          setOnlineUsers(currentUser ? [currentUser] : []);
+          setSynced(false);
+        }
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") syncPresence();
+    };
+
+    syncPresence();
+    const intervalId = window.setInterval(syncPresence, 45_000);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [currentUser?.email, currentUser?.id]);
+
+  const visibleUsers = onlineUsers.slice(0, 5);
+  const extraCount = Math.max(0, onlineUsers.length - visibleUsers.length);
+  const names = visibleUsers
+    .slice(0, 2)
+    .map((person) => person.is_current || person.email === currentUser?.email ? "أنت" : String(person.name || "مستخدم").split(" ")[0])
+    .join("، ");
+
+  return (
+    <div className="px-3 pb-3" data-testid="online-users-panel">
+      <div className="glass-card px-3 py-3 border-emerald-500/15 bg-emerald-500/[0.025]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`w-2 h-2 rounded-full ${synced ? "bg-emerald-400 shadow-[0_0_9px_rgba(52,211,153,.8)]" : "bg-amber-400"}`} />
+            <span className="text-xs font-black text-slate-200 truncate">المتواجدون الآن</span>
+          </div>
+          <span className="min-w-6 h-6 px-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-black flex items-center justify-center tabular-nums">
+            {onlineUsers.length}
+          </span>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          <div className="flex items-center -space-x-2 space-x-reverse flex-shrink-0">
+            {visibleUsers.map((person, index) => (
+              <div key={person.email || person.id || index} className="rounded-xl ring-2 ring-[#0b0f18]" title={`${person.name || "مستخدم"}${person.title ? ` — ${person.title}` : ""}`}>
+                <UserAvatar user={person} size="xs" showStatus />
+              </div>
+            ))}
+            {extraCount > 0 && (
+              <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 ring-2 ring-[#0b0f18] flex items-center justify-center text-[10px] font-black text-slate-300">
+                +{extraCount}
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] text-slate-400 truncate">{names || "لا يوجد حضور مسجل"}</div>
+            <div className="text-[9px] text-slate-600 mt-0.5">{synced ? "تحديث تلقائي للحضور" : "مزامنة الحضور مؤقتًا"}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -83,6 +166,8 @@ export default function AppLayout() {
             </NavLink>
           )}
         </nav>
+
+        <OnlineUsersPanel currentUser={user} />
 
         <div className="app-sidebar-footer p-4 border-t border-white/5 space-y-3">
           <button type="button" onClick={toggleMode} data-testid="theme-mode-toggle" className="theme-mode-toggle w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border border-white/10 bg-white/[0.025] text-slate-300 hover:border-yellow-500/25 transition-all" title={mode === "light" ? "التحويل إلى الوضع الليلي" : "التحويل إلى الوضع النهاري"}>
