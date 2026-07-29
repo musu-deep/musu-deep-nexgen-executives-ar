@@ -12,35 +12,29 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for production deployment
-        run: sleep 90
+      - name: Wait for preview deployment
+        run: sleep 35
 
       - name: Verify institutional login and central record access
         shell: bash
         run: |
           set -euo pipefail
-          BASE_URL="https://musu-deep-nexgen-executives-ar.vercel.app"
+          BASE_URL="https://musu-deep-nexgen-executives-ar-git-ops-v-262a19-reydas-projects.vercel.app"
           PASSWORD=$(python -c 'print("".join(chr(x) for x in [69,120,101,99,65,103,101,110,116,50,48,50,54,33]))')
           LOGIN_BODY=$(python -c 'import json,sys; print(json.dumps({"email":"ceo@company.demo","password":sys.argv[1]}))' "$PASSWORD")
 
           LOGIN_RESPONSE=$(curl --silent --show-error --fail-with-body --location \
-            -X POST "$BASE_URL/api/auth/login" \
-            -H "Content-Type: application/json" \
-            -d "$LOGIN_BODY")
+            -X POST "$BASE_URL/api/auth/login" -H "Content-Type: application/json" -d "$LOGIN_BODY")
           TOKEN=$(node -e 'const v=JSON.parse(process.argv[1]); if(!v.access_token) process.exit(2); process.stdout.write(v.access_token)' "$LOGIN_RESPONSE")
 
           STATUS_RESPONSE=$(curl --silent --show-error --fail-with-body --location \
-            -X POST "$BASE_URL/api/marketing" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"action":"status"}')
+            -X POST "$BASE_URL/api/marketing" -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" -d '{"action":"status"}')
           echo "status=$(echo "$STATUS_RESPONSE" | head -c 800)"
           node -e 'const v=JSON.parse(process.argv[1]); if(!v.ok || !v.configured || !v.connected){ console.error(JSON.stringify(v)); process.exit(3); } console.log(`Connected; read_only=${v.read_only}`)' "$STATUS_RESPONSE"
 
           LIST_RESPONSE=$(curl --silent --show-error --fail-with-body --location \
-            -X POST "$BASE_URL/api/marketing" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"action":"list","kind":"opportunity"}')
+            -X POST "$BASE_URL/api/marketing" -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" -d '{"action":"list","kind":"opportunity"}')
           echo "list=$(echo "$LIST_RESPONSE" | head -c 800)"
           node -e 'const v=JSON.parse(process.argv[1]); if(!v.ok || !Array.isArray(v.records)) process.exit(4); console.log(`Central records reachable: ${v.records.length}`)' "$LIST_RESPONSE"
