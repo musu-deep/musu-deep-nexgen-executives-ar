@@ -11,6 +11,7 @@ from typing import Any
 from .odoo_connector import OdooConnectorError, get_odoo_connector
 
 MARKER = "ARAAK_MARKETING_V1:"
+CENTRAL_MODEL = "project.project"
 SOURCES = ["اعتماد", "فرصة", "منافس", "مناقصات", "إحالة مباشرة", "مصدر داخلي"]
 MAX_FILES = 5
 MAX_FILE_SIZE = 3 * 1024 * 1024
@@ -62,7 +63,7 @@ def ensure_write_access(user: dict[str, Any]) -> None:
         raise PermissionError("لا يملك هذا الحساب صلاحية إنشاء سجلات أو مرفقات.")
 
 
-async def protocol_call(
+async def model_call(
     model: str,
     method: str,
     json2_body: dict[str, Any],
@@ -85,7 +86,7 @@ async def protocol_call(
     return await asyncio.to_thread(run)
 
 
-async def compatible_search_read(
+async def search_read(
     model: str,
     domain: list[Any],
     fields: list[str],
@@ -93,7 +94,14 @@ async def compatible_search_read(
     order: str,
 ) -> list[dict[str, Any]]:
     connector = get_odoo_connector()
-    return await connector._compatible_search_read(model, domain, fields, limit, order)
+    result = await asyncio.to_thread(
+        connector._call_model_sync,
+        model,
+        "search_read",
+        [domain],
+        {"fields": fields, "limit": limit, "order": order},
+    )
+    return result if isinstance(result, list) else []
 
 
 def description_html(metadata: dict[str, Any]) -> str:
@@ -129,22 +137,22 @@ def record_view(row: dict[str, Any], attachments: dict[int, list[dict[str, Any]]
         "kind": kind,
         "title": str(row.get("name") or ""),
         "reference": metadata.get("reference"),
-        "client": row.get("partner_name") or metadata.get("client"),
+        "client": metadata.get("client"),
         "entity": metadata.get("entity"),
-        "city": row.get("city") or metadata.get("city"),
-        "value": float(row.get("expected_revenue") or metadata.get("value") or 0) or None,
-        "deadline": row.get("date_deadline") or metadata.get("deadline"),
+        "city": metadata.get("city"),
+        "value": metadata.get("value"),
+        "deadline": metadata.get("deadline"),
         "publication_date": metadata.get("publication_date"),
         "description": metadata.get("description") or strip_html(row.get("description")),
         "requirements": metadata.get("requirements"),
         "source": metadata.get("source") or "مصدر داخلي",
         "source_url": metadata.get("source_url"),
         "status": metadata.get("status") or ("cancelled" if row.get("active") is False else "active"),
-        "current_stage": metadata.get("current_stage") or m2o_name(row.get("stage_id")) or "الاستقبال",
-        "stage_label": m2o_name(row.get("stage_id")) or metadata.get("current_stage") or "الاستقبال",
-        "probability": float(row.get("probability") or 0),
+        "current_stage": metadata.get("current_stage") or "الاستقبال",
+        "stage_label": metadata.get("current_stage") or "الاستقبال",
+        "probability": float(metadata.get("probability") or 0),
         "owner": m2o_name(row.get("user_id")) or None,
-        "team": m2o_name(row.get("team_id")) or None,
+        "team": m2o_name(row.get("company_id")) or None,
         "created_at": row.get("create_date"),
         "updated_at": row.get("write_date"),
         "attachments": attachments.get(row_id, []),
@@ -152,57 +160,53 @@ def record_view(row: dict[str, Any], attachments: dict[int, list[dict[str, Any]]
 
 
 async def list_records(kind: str | None = None) -> list[dict[str, Any]]:
-    leads = await compatible_search_read(
-        "crm.lead",
+    projects = await search_read(
+        CENTRAL_MODEL,
         [["description", "ilike", MARKER]],
-        [
-            "id", "name", "partner_name", "city", "expected_revenue", "date_deadline",
-            "description", "stage_id", "probability", "active", "create_date", "write_date",
-            "user_id", "team_id",
-        ],
+        ["id", "name", "description", "active", "create_date", "write_date", "user_id", "company_id"],
         250,
         "create_date desc, id desc",
     )
-    ids = [int(row["id"]) for row in leads if row.get("id")]
+    ids = [int(row["id"]) for row in projects if row.get("id")]
     grouped: dict[int, list[dict[str, Any]]] = {}
     if ids:
-        rows = await compatible_search_read(
+        rows = await search_read(
             "ir.attachment",
-            [["res_model", "=", "crm.lead"], ["res_id", "in", ids]],
+            [["res_model", "=", CENTRAL_MODEL], ["res_id", "in", ids]],
             ["id", "name", "mimetype", "file_size", "create_date", "res_id"],
             1000,
             "create_date desc, id desc",
         )
         for row in rows:
             grouped.setdefault(int(row.get("res_id") or 0), []).append(attachment_view(row))
-    records = [record_view(row, grouped) for row in leads]
+    records = [record_view(row, grouped) for row in projects]
     return [row for row in records if not kind or row["kind"] == kind]
 
 
-async def create_lead(values: dict[str, Any]) -> int:
-    result = await protocol_call(
-        "crm.lead",
+async def create_project(values: dict[str, Any]) -> int:
+    result = await model_call(
+        CENTRAL_MODEL,
         "create",
         {"vals_list": [values]},
         [[values]],
     )
-    lead_id = created_id(result)
-    if not lead_id:
+    project_id = created_id(result)
+    if not project_id:
         raise RuntimeError("لم يُرجع السجل المركزي رقمًا صالحًا للسجل الجديد.")
-    return lead_id
+    return project_id
 
 
-async def unlink_lead(lead_id: int) -> None:
-    await protocol_call(
-        "crm.lead",
+async def unlink_project(project_id: int) -> None:
+    await model_call(
+        CENTRAL_MODEL,
         "unlink",
-        {"ids": [lead_id]},
-        [[lead_id]],
+        {"ids": [project_id]},
+        [[project_id]],
     )
 
 
 async def create_attachment(values: dict[str, Any]) -> int | None:
-    result = await protocol_call(
+    result = await model_call(
         "ir.attachment",
         "create",
         {"vals_list": [values]},
@@ -212,15 +216,12 @@ async def create_attachment(values: dict[str, Any]) -> int | None:
 
 
 async def read_rows(model: str, ids: list[int], fields: list[str]) -> list[dict[str, Any]]:
-    connector = get_odoo_connector()
-    available = await connector._fields(model)
-    selected = [field for field in fields if field in available]
-    result = await protocol_call(
+    result = await model_call(
         model,
         "read",
-        {"ids": ids, "fields": selected, "load": None},
+        {"ids": ids, "fields": fields, "load": None},
         [ids],
-        {"fields": selected, "load": None},
+        {"fields": fields, "load": None},
     )
     return result if isinstance(result, list) else []
 
@@ -252,23 +253,11 @@ async def create_record(payload: dict[str, Any], user: dict[str, Any]) -> dict[s
         "created_by_role": user.get("role"),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    values: dict[str, Any] = {
+    project_id = await create_project({
         "name": title,
-        "type": "opportunity",
         "description": description_html(metadata),
-    }
-    optional = {
-        "partner_name": str(record.get("client") or record.get("entity") or "").strip(),
-        "city": str(record.get("city") or "").strip(),
-        "expected_revenue": float(record["value"]) if record.get("value") else None,
-        "date_deadline": record.get("deadline") or None,
-    }
-    connector = get_odoo_connector()
-    available = await connector._fields("crm.lead")
-    values.update({key: value for key, value in optional.items() if key in available and value not in (None, "")})
-    values = {key: value for key, value in values.items() if key in available}
+    })
 
-    lead_id = await create_lead(values)
     attachment_ids: list[int] = []
     files = payload.get("files") if isinstance(payload.get("files"), list) else []
     for item in files[:MAX_FILES]:
@@ -276,24 +265,21 @@ async def create_record(payload: dict[str, Any], user: dict[str, Any]) -> dict[s
             continue
         if int(item.get("size") or 0) > MAX_FILE_SIZE:
             raise ValueError(f"الملف {item['name']} يتجاوز الحد المسموح.")
-        attachment_values = {
+        attachment_id = await create_attachment({
             "name": str(item["name"]),
             "type": "binary",
             "datas": re.sub(r"^data:[^;]+;base64,", "", str(item["data_base64"])),
             "mimetype": str(item.get("mime_type") or "application/octet-stream"),
-            "res_model": "crm.lead",
-            "res_id": lead_id,
+            "res_model": CENTRAL_MODEL,
+            "res_id": project_id,
             "public": False,
-        }
-        attachment_fields = await connector._fields("ir.attachment")
-        attachment_values = {key: value for key, value in attachment_values.items() if key in attachment_fields}
-        attachment_id = await create_attachment(attachment_values)
+        })
         if attachment_id:
             attachment_ids.append(attachment_id)
 
     records = await list_records(kind)
     return {
-        "record": next((row for row in records if row["id"] == lead_id), {"id": lead_id, "kind": kind, "title": title}),
+        "record": next((row for row in records if row["id"] == project_id), {"id": project_id, "kind": kind, "title": title}),
         "attachment_ids": attachment_ids,
     }
 
@@ -305,11 +291,11 @@ async def download_attachment(attachment_id: Any) -> dict[str, Any]:
         ["id", "name", "mimetype", "datas", "file_size", "res_model", "res_id"],
     )
     item = rows[0] if rows else None
-    if not item or item.get("res_model") != "crm.lead":
+    if not item or item.get("res_model") != CENTRAL_MODEL:
         raise RuntimeError("الملف المطلوب غير متاح.")
-    leads = await read_rows("crm.lead", [int(item["res_id"])], ["id", "description"])
-    lead = leads[0] if leads else None
-    if not lead or not decode_metadata(lead.get("description")):
+    projects = await read_rows(CENTRAL_MODEL, [int(item["res_id"])], ["id", "description"])
+    project = projects[0] if projects else None
+    if not project or not decode_metadata(project.get("description")):
         raise RuntimeError("الملف غير مرتبط بسجل مسموح.")
     return {
         "id": int(item["id"]),
@@ -322,8 +308,6 @@ async def download_attachment(attachment_id: Any) -> dict[str, Any]:
 
 async def verify_write(user: dict[str, Any]) -> dict[str, Any]:
     ensure_write_access(user)
-    connector = get_odoo_connector()
-    available = await connector._fields("crm.lead")
     metadata = {
         "kind": "opportunity",
         "status": "verification",
@@ -331,17 +315,14 @@ async def verify_write(user: dict[str, Any]) -> dict[str, Any]:
         "created_by_email": user.get("email"),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    values = {
+    project_id = await create_project({
         "name": "ARAAK Marketing Gateway Verification",
-        "type": "opportunity",
         "description": description_html(metadata),
-    }
-    values = {key: value for key, value in values.items() if key in available}
-    lead_id = await create_lead(values)
+    })
     try:
-        return {"write_verified": True, "temporary_record_id": lead_id}
+        return {"write_verified": True, "temporary_record_id": project_id}
     finally:
-        await unlink_lead(lead_id)
+        await unlink_project(project_id)
 
 
 async def execute(payload: dict[str, Any], user: dict[str, Any]) -> dict[str, Any]:
