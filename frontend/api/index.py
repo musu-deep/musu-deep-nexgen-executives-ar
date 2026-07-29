@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 os.environ.setdefault("EMBEDDED_DATA_FILE", "/tmp/nexgen_executives_data.json")
@@ -29,6 +30,30 @@ backend_app = embedded_server.app
 app = FastAPI(
     title="NEXGEN EXECUTIVES — Vercel",
     description="Hosted digital CEO office",
+)
+
+# The marketing workspace is deployed on a separate Vercel origin. Its browser
+# calls include an Authorization header, so the OPTIONS preflight must be
+# answered before authentication and before mounted fallback routes.
+configured_origins = {
+    origin.strip().rstrip("/")
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+}
+allowed_origins = sorted({
+    "https://araak-marketing.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    *configured_origins,
+})
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin"],
+    expose_headers=["Content-Disposition"],
+    max_age=86400,
 )
 
 DEMO_PASSWORD = "".join(chr(value) for value in [69, 120, 101, 99, 65, 103, 101, 110, 116, 50, 48, 50, 54, 33])
