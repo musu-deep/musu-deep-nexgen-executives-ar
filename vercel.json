@@ -8,6 +8,9 @@
     "api/[...path].js": {
       "maxDuration": 60
     },
+    "api/marketing.js": {
+      "maxDuration": 60
+    },
     "api/auth/login.js": {
       "maxDuration": 30
     },
