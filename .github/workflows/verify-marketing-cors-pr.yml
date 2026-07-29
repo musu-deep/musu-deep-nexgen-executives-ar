@@ -13,24 +13,38 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Wait for production deployment
-        run: sleep 90
-
-      - name: Verify ARAAK Marketing browser preflight
+      - name: Verify ARAAK Marketing CORS
         shell: bash
         run: |
           set -euo pipefail
-          HEADERS=$(mktemp)
-          CODE=$(curl --silent --show-error --location \
-            --output /dev/null --dump-header "$HEADERS" --write-out "%{http_code}" \
-            -X OPTIONS "https://musu-deep-nexgen-executives-ar.vercel.app/api/marketing" \
-            -H "Origin: https://araak-marketing.vercel.app" \
+          BASE_URL="https://musu-deep-nexgen-executives-ar.vercel.app"
+          ORIGIN="https://araak-marketing.vercel.app"
+
+          PREFLIGHT_HEADERS=$(mktemp)
+          PREFLIGHT_CODE=$(curl --silent --show-error --location \
+            --output /dev/null --dump-header "$PREFLIGHT_HEADERS" --write-out "%{http_code}" \
+            -X OPTIONS "$BASE_URL/api/marketing" \
+            -H "Origin: $ORIGIN" \
             -H "Access-Control-Request-Method: POST" \
             -H "Access-Control-Request-Headers: authorization,content-type")
+          tr -d '\r' < "$PREFLIGHT_HEADERS" > "${PREFLIGHT_HEADERS}.clean"
+          echo "preflight-code=$PREFLIGHT_CODE"
+          cat "${PREFLIGHT_HEADERS}.clean"
+          [ "$PREFLIGHT_CODE" = "200" ] || [ "$PREFLIGHT_CODE" = "204" ]
+          grep -Fiq "access-control-allow-origin: $ORIGIN" "${PREFLIGHT_HEADERS}.clean"
+          grep -Eiq '^access-control-allow-methods: .*POST' "${PREFLIGHT_HEADERS}.clean"
+          grep -Eiq '^access-control-allow-headers: .*Authorization' "${PREFLIGHT_HEADERS}.clean"
 
-          echo "preflight-code=$CODE"
-          cat "$HEADERS"
-          [ "$CODE" = "200" ] || [ "$CODE" = "204" ]
-          grep -Eiq '^access-control-allow-origin: https://araak-marketing\.vercel\.app\r?$' "$HEADERS"
-          grep -Eiq '^access-control-allow-methods: .*POST' "$HEADERS"
-          grep -Eiq '^access-control-allow-headers: .*Authorization' "$HEADERS"
+          RESPONSE_HEADERS=$(mktemp)
+          RESPONSE_BODY=$(mktemp)
+          RESPONSE_CODE=$(curl --silent --show-error --location \
+            --output "$RESPONSE_BODY" --dump-header "$RESPONSE_HEADERS" --write-out "%{http_code}" \
+            -X POST "$BASE_URL/api/marketing" \
+            -H "Origin: $ORIGIN" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"list","kind":"opportunity"}')
+          tr -d '\r' < "$RESPONSE_HEADERS" > "${RESPONSE_HEADERS}.clean"
+          echo "response-code=$RESPONSE_CODE body=$(head -c 500 "$RESPONSE_BODY")"
+          cat "${RESPONSE_HEADERS}.clean"
+          [ "$RESPONSE_CODE" = "401" ]
+          grep -Fiq "access-control-allow-origin: $ORIGIN" "${RESPONSE_HEADERS}.clean"
