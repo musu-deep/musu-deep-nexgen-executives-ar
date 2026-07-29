@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 import api.secure_unified as secure
-from api.backend import access_policy
+from api.backend import access_policy, marketing_gateway
 
 outer_app = secure.outer_app
 core = secure.core
@@ -153,6 +153,31 @@ async def operational_status(user=Depends(secure.base.hosted_get_current_user)):
         "fallback_enabled": True,
         "dashboard_available_without_odoo": True,
     }
+
+
+@outer_app.post("/api/marketing")
+async def central_marketing_records(
+    request: Request,
+    user=Depends(secure.base.hosted_get_current_user),
+):
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    try:
+        return await marketing_gateway.execute(payload, user)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except marketing_gateway.OdooConnectorError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except RuntimeError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail="تعذر تنفيذ العملية في السجل المركزي.",
+        ) from error
 
 
 @outer_app.get("/api/users")
