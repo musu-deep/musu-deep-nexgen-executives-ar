@@ -1,0 +1,101 @@
+name: Direct Vercel Production Deploy
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/direct-vercel-production.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-and-provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_SCOPE: reydas-projects
+      VERCEL_PROJECT: musu-deep-nexgen-executives-ar
+      BASE_URL: https://musu-deep-nexgen-executives-ar.vercel.app
+      TARGET_EMAIL: louiabdalla1@gmail.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify Vercel credentials
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN is not configured in GitHub Actions secrets"
+            exit 2
+          fi
+
+      - name: Deploy current repository to Vercel production
+        run: |
+          npm install --global vercel@latest
+          vercel link --yes --project "$VERCEL_PROJECT" --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN"
+          vercel pull --yes --environment=production --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN"
+          vercel build --prod --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN"
+
+      - name: Wait for IAM route and provision requested user
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            code=$(curl -sS -o /tmp/iam-probe.json -w '%{http_code}' "$BASE_URL/api/iam/users" || true)
+            echo "IAM probe attempt $attempt: HTTP $code"
+            if [ "$code" != "404" ] && [ "$code" != "000" ]; then
+              break
+            fi
+            sleep 10
+          done
+
+          LOGIN=$(curl -sS --fail-with-body -X POST "$BASE_URL/api/auth/login" \
+            -H 'Content-Type: application/json' \
+            --data '{"email":"admin@company.demo","password":"ExecAgent2026!"}')
+          TOKEN=$(LOGIN_JSON="$LOGIN" python - <<'PY'
+          import json, os
+          print(json.loads(os.environ['LOGIN_JSON'])['access_token'])
+          PY
+          )
+          echo "::add-mask::$TOKEN"
+
+          USERS=$(curl -sS --fail-with-body "$BASE_URL/api/iam/users" -H "Authorization: Bearer $TOKEN")
+          EXISTING_ID=$(USERS_JSON="$USERS" TARGET="$TARGET_EMAIL" python - <<'PY'
+          import json, os
+          users = json.loads(os.environ['USERS_JSON'])
+          target = os.environ['TARGET'].lower()
+          print(next((str(u.get('id','')) for u in users if str(u.get('email','')).lower() == target), ''))
+          PY
+          )
+
+          if [ -z "$EXISTING_ID" ]; then
+            INVITE=$(curl -sS --fail-with-body -X POST "$BASE_URL/api/iam/users/invite" \
+              -H 'Content-Type: application/json' \
+              -H "Authorization: Bearer $TOKEN" \
+              --data '{"name":"لؤي أحمد","email":"louiabdalla1@gmail.com","title":"نائب الرئيس التنفيذي للتنمية","department":"الإدارة العليا","role":"vp_development"}')
+            CREATED_ID=$(INVITE_JSON="$INVITE" python - <<'PY'
+          import json, os
+          print(json.loads(os.environ['INVITE_JSON'])['user']['id'])
+          PY
+            )
+            echo "Created production user id: $CREATED_ID"
+          else
+            echo "Production user already exists: $EXISTING_ID"
+          fi
+
+          VERIFIED=$(curl -sS --fail-with-body "$BASE_URL/api/iam/users" -H "Authorization: Bearer $TOKEN")
+          USERS_JSON="$VERIFIED" TARGET="$TARGET_EMAIL" python - <<'PY'
+          import json, os
+          users = json.loads(os.environ['USERS_JSON'])
+          target = os.environ['TARGET'].lower()
+          found = next((u for u in users if str(u.get('email','')).lower() == target), None)
+          if not found:
+              raise SystemExit('Requested user was not persisted')
+          print('Verified production user:', found.get('email'), found.get('invitation_status'), found.get('active'))
+          PY
