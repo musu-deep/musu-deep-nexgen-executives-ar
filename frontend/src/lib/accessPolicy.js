@@ -1,4 +1,4 @@
-export const FULL_ACCESS_ROLES = new Set(["admin", "ceo"]);
+export const FULL_ACCESS_ROLES = new Set(["ceo"]);
 
 const COMMON_MODULES = new Set([
   "dashboard", "projects", "tasks", "meetings", "meeting_requests",
@@ -33,21 +33,29 @@ const PATH_MODULES = [
   [/^\/pricing-intelligence(?:\/.*)?$/, "pricing_intelligence"],
   [/^\/voice(?:\/.*)?$/, "voice"], [/^\/ai-lounge(?:\/.*)?$/, "ai_lounge"],
   [/^\/odoo-integration(?:\/.*)?$/, "odoo_integration"], [/^\/reports(?:\/.*)?$/, "reports"],
-  [/^\/admin(?:\/.*)?$/, "admin"],
+  [/^\/admin(?:\/.*)?$/, "admin"], [/^\/access-control(?:\/.*)?$/, "access_control"],
 ];
+
+function explicitModules(user) {
+  if (!Array.isArray(user?.access_modules)) return null;
+  return new Set(user.access_modules);
+}
 
 function profileText(user) {
   return [user?.email, user?.title, user?.department, user?.name].filter(Boolean).join(" ").toLowerCase();
 }
 
 export function isFullAccessUser(user) {
+  if (explicitModules(user)) {
+    return user?.role === "ceo";
+  }
   return FULL_ACCESS_ROLES.has(user?.role);
 }
 
 export function functionalAreaForUser(user) {
   if (isFullAccessUser(user)) return "full";
   const text = profileText(user);
-  if (text.includes("الموارد البشرية") || text.includes("human resources") || String(user?.email || "").toLowerCase() === "hr@company.demo") return "human_resources";
+  if (text.includes("الموارد البشرية") || text.includes("human resources")) return "human_resources";
   if (user?.role === "tracker" || text.includes("سكرتارية") || text.includes("متابعة") || text.includes("مكتب الرئيس")) return "secretariat";
   if (text.includes("قانون") || text.includes("legal")) return "legal";
   if (text.includes("جودة") || text.includes("رقابة") || text.includes("تفتيش") || text.includes("quality")) return "quality";
@@ -59,15 +67,23 @@ export function functionalAreaForUser(user) {
 }
 
 export function allowedModulesForUser(user) {
+  const explicit = explicitModules(user);
+  if (explicit) return explicit;
   if (isFullAccessUser(user)) return null;
   const allowed = new Set(COMMON_MODULES);
   (AREA_MODULES[functionalAreaForUser(user)] || []).forEach((module) => allowed.add(module));
+  if (user?.role === "admin") {
+    allowed.add("admin");
+    allowed.add("access_control");
+  }
   return allowed;
 }
 
 export function canAccessModule(user, module) {
   if (!user) return false;
-  if (module === "admin") return user?.role === "admin";
+  if (module === "admin" || module === "access_control") return user?.role === "admin";
+  const explicit = explicitModules(user);
+  if (explicit) return explicit.has(module);
   if (isFullAccessUser(user)) return true;
   if (FULL_ONLY_MODULES.has(module)) return false;
   return allowedModulesForUser(user)?.has(module) || false;

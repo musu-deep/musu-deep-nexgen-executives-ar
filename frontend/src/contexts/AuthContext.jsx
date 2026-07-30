@@ -5,8 +5,8 @@ const AuthContext = createContext(null);
 const PROFILE_KEY = "arak_user_profile";
 const TOKEN_KEY = "arak_token";
 const SESSION_VERSION_KEY = "arak_session_version";
-const SESSION_VERSION = "hosted-file-intelligence-v10";
-const BUILD_RELEASE = "ceo-office-institutional-pricing-intake-2026-07-27-v11";
+const SESSION_VERSION = "araak-access-fabric-v1";
+const BUILD_RELEASE = "ceo-office-secure-access-fabric-ar-2026-07-30";
 
 if (typeof window !== "undefined") {
   window.__ARAK_BUILD_RELEASE__ = BUILD_RELEASE;
@@ -33,9 +33,32 @@ function upgradeStoredSession() {
   localStorage.setItem(SESSION_VERSION_KEY, SESSION_VERSION);
 }
 
+async function enrichWithAccess(profile) {
+  try {
+    const response = await api.get("/access/me");
+    return normalizeUser({
+      ...profile,
+      access_permissions: response.data?.permissions || [],
+      access_modules: response.data?.modules || [],
+      access_roles: response.data?.roles || [],
+      clearance: response.data?.clearance || profile?.clearance || "internal",
+      access_fabric_ready: true,
+    });
+  } catch (error) {
+    console.warn("تعذر تحميل نسيج الصلاحيات؛ سيتم استخدام سياسة الترحيل المؤقتة.", error);
+    return normalizeUser({ ...profile, access_fabric_ready: false });
+  }
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const persistProfile = (profile) => {
+    setUser(profile);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    return profile;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -49,12 +72,13 @@ export const AuthProvider = ({ children }) => {
     }
 
     api.get("/auth/me")
-      .then((res) => {
-        if (cancelled) return;
-        const profile = normalizeUser(res.data.user);
+      .then(async (response) => {
+        const profile = normalizeUser(response.data.user);
         if (!profile) throw new Error("Missing verified profile");
-        setUser(profile);
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        return enrichWithAccess(profile);
+      })
+      .then((profile) => {
+        if (!cancelled) persistProfile(profile);
       })
       .catch(() => {
         if (!cancelled) {
@@ -83,16 +107,23 @@ export const AuthProvider = ({ children }) => {
       throw new Error("لم يتم إنشاء جلسة دخول مكتملة");
     }
     localStorage.setItem(TOKEN_KEY, payload.access_token);
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     localStorage.setItem(SESSION_VERSION_KEY, SESSION_VERSION);
-    setUser(profile);
+    persistProfile(profile);
+    enrichWithAccess(profile).then(persistProfile);
     return profile;
   };
 
   const login = async (email, password) => {
     const normalizedEmail = String(email || "").trim().toLowerCase();
-    const res = await api.post("/auth/login", { email: normalizedEmail, password });
-    return acceptSession(res.data);
+    const response = await api.post("/auth/login", { email: normalizedEmail, password });
+    const baseProfile = acceptSession(response.data);
+    const enriched = await enrichWithAccess(baseProfile);
+    return persistProfile(enriched);
+  };
+
+  const refreshAccess = async () => {
+    if (!user) return user;
+    return persistProfile(await enrichWithAccess(user));
   };
 
   const logout = async () => {
@@ -103,7 +134,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, acceptSession, logout }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, acceptSession, refreshAccess, logout }}>
       {children}
     </AuthContext.Provider>
   );
