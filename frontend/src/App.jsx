@@ -8,6 +8,7 @@ import { LanguageProvider } from "./contexts/LanguageContext";
 import { canAccessPath } from "./lib/accessPolicy";
 import ExecutiveLoginPage from "./pages/ExecutiveLoginPage";
 import ActivateAccountPage from "./pages/ActivateAccountPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import RoleAwareDashboardPage from "./pages/RoleAwareDashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
@@ -16,7 +17,6 @@ import ReportsPage from "./pages/ReportsPage";
 import TeamPage from "./pages/TeamPage";
 import HumanResourcesPage from "./pages/HumanResourcesPage";
 import AdminPage from "./pages/AdminPage";
-import AccessControlPage from "./pages/AccessControlPage";
 import MeetingsPage from "./pages/MeetingsPage";
 import MeetingRequestsPage from "./pages/MeetingRequestsPage";
 import DocumentsPage from "./pages/DocumentsPage";
@@ -43,38 +43,28 @@ function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-slate-400" dir="rtl">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-yellow-500/30 border-t-yellow-500 rounded-full animate-spin mx-auto mb-3"></div>
-          جارٍ التحقق من الجلسة الآمنة...
-        </div>
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center text-slate-400" dir="rtl"><div className="text-center"><div className="w-10 h-10 border-2 border-yellow-500/30 border-t-yellow-500 rounded-full animate-spin mx-auto mb-3"></div>جارٍ التحقق من الجلسة الآمنة...</div></div>;
   }
   if (!user) return <Navigate to="/login" replace />;
+  if (user.must_change_password && location.pathname !== "/change-password") return <Navigate to="/change-password" replace />;
+  if (!user.must_change_password && location.pathname === "/change-password") return <Navigate to="/dashboard" replace />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />;
-  if (!canAccessPath(user, location.pathname)) return <Navigate to="/dashboard" replace />;
+  if (location.pathname !== "/change-password" && !canAccessPath(user, location.pathname)) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
 function PublicOnly({ children }) {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={user.must_change_password ? "/change-password" : "/dashboard"} replace />;
   return children;
 }
 
 function LoginAppearanceToggle() {
   const location = useLocation();
   const { mode, toggleMode } = useTheme();
-  if (!["/login", "/activate"].includes(location.pathname)) return null;
-  return (
-    <button type="button" onClick={toggleMode} className="theme-mode-toggle fixed top-5 left-5 z-[70] px-4 py-2.5 rounded-xl border border-white/10 bg-black/25 backdrop-blur-xl text-slate-200 flex items-center gap-2 text-sm font-bold shadow-xl" aria-label={mode === "light" ? "تشغيل الوضع الليلي" : "تشغيل الوضع النهاري"} title={mode === "light" ? "تشغيل الوضع الليلي" : "تشغيل الوضع النهاري"}>
-      {mode === "light" ? <Sun size={17} className="text-yellow-500" /> : <Moon size={17} className="text-indigo-300" />}
-      {mode === "light" ? "نهاري" : "ليلي"}
-    </button>
-  );
+  if (!["/login", "/activate", "/change-password"].includes(location.pathname)) return null;
+  return <button type="button" onClick={toggleMode} className="theme-mode-toggle fixed top-5 left-5 z-[70] px-4 py-2.5 rounded-xl border border-white/10 bg-black/25 backdrop-blur-xl text-slate-200 flex items-center gap-2 text-sm font-bold shadow-xl" aria-label={mode === "light" ? "تشغيل الوضع الليلي" : "تشغيل الوضع النهاري"}>{mode === "light" ? <Sun size={17} className="text-yellow-500" /> : <Moon size={17} className="text-indigo-300" />}{mode === "light" ? "نهاري" : "ليلي"}</button>;
 }
 
 function PlatformToaster() {
@@ -90,6 +80,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={<PublicOnly><ExecutiveLoginPage /></PublicOnly>} />
         <Route path="/activate" element={<PublicOnly><ActivateAccountPage /></PublicOnly>} />
+        <Route path="/change-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<RoleAwareDashboardPage />} />
@@ -119,7 +110,7 @@ function AppRoutes() {
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminPage /></ProtectedRoute>} />
-          <Route path="/access-control" element={<ProtectedRoute roles={["admin"]}><AccessControlPage /></ProtectedRoute>} />
+          <Route path="/access-control" element={<Navigate to="/admin" replace />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
@@ -128,18 +119,7 @@ function AppRoutes() {
 }
 
 function App() {
-  return (
-    <div className="App" dir="rtl">
-      <ThemeProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <AppRoutes />
-            <PlatformToaster />
-          </AuthProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </div>
-  );
+  return <div className="App" dir="rtl"><ThemeProvider><LanguageProvider><AuthProvider><AppRoutes /><PlatformToaster /></AuthProvider></LanguageProvider></ThemeProvider></div>;
 }
 
 export default App;
