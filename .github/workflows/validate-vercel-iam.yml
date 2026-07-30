@@ -34,7 +34,11 @@ jobs:
           node --check 'api/users/[userId]/reset-invite.js'
           node --check api/auth/invitation.js
           node --check api/auth/activate.js
+          node --check scripts/test_vercel_iam.mjs
           node -e "JSON.parse(require('fs').readFileSync('vercel.json','utf8')); console.log('vercel.json valid')"
+
+      - name: Exercise hosted IAM routes
+        run: node scripts/test_vercel_iam.mjs
 
       - name: Build frontend
         run: |
