@@ -5,8 +5,8 @@ const AuthContext = createContext(null);
 const PROFILE_KEY = "arak_user_profile";
 const TOKEN_KEY = "arak_token";
 const SESSION_VERSION_KEY = "arak_session_version";
-const SESSION_VERSION = "araak-access-fabric-v5";
-const BUILD_RELEASE = "ceo-office-vercel-iam-api-2026-07-30-v5";
+const SESSION_VERSION = "araak-password-first-login-v1";
+const BUILD_RELEASE = "ceo-office-password-first-login-2026-07-30-v1";
 
 if (typeof window !== "undefined") {
   window.__ARAK_BUILD_RELEASE__ = BUILD_RELEASE;
@@ -18,6 +18,7 @@ function normalizeUser(user) {
   const normalized = { ...user };
   if (normalized.department === "الرقابة والجودة") normalized.department = "التفتيش والرقابة والجودة";
   if (normalized.title === "مدير الرقابة والجودة") normalized.title = "مدير التفتيش والرقابة والجودة";
+  normalized.access_fabric_ready = false;
   return normalized;
 }
 
@@ -33,37 +34,20 @@ function upgradeStoredSession() {
   localStorage.setItem(SESSION_VERSION_KEY, SESSION_VERSION);
 }
 
-async function enrichWithAccess(profile) {
-  try {
-    const response = await api.get("/access/me");
-    return normalizeUser({
-      ...profile,
-      access_permissions: response.data?.permissions || [],
-      access_modules: response.data?.modules || [],
-      access_roles: response.data?.roles || [],
-      clearance: response.data?.clearance || profile?.clearance || "internal",
-      access_fabric_ready: true,
-    });
-  } catch (error) {
-    console.warn("تعذر تحميل نسيج الصلاحيات؛ سيتم استخدام سياسة الترحيل المؤقتة.", error);
-    return normalizeUser({ ...profile, access_fabric_ready: false });
-  }
-}
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const persistProfile = (profile) => {
-    setUser(profile);
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-    return profile;
+    const normalized = normalizeUser(profile);
+    setUser(normalized);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(normalized));
+    return normalized;
   };
 
   useEffect(() => {
     let cancelled = false;
     upgradeStoredSession();
-
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
       setUser(false);
@@ -72,13 +56,9 @@ export const AuthProvider = ({ children }) => {
     }
 
     api.get("/auth/me")
-      .then(async (response) => {
-        const profile = normalizeUser(response.data.user);
-        if (!profile) throw new Error("Missing verified profile");
-        return enrichWithAccess(profile);
-      })
-      .then((profile) => {
-        if (!cancelled) persistProfile(profile);
+      .then((response) => {
+        if (!response.data?.user) throw new Error("Missing verified profile");
+        if (!cancelled) persistProfile(response.data.user);
       })
       .catch(() => {
         if (!cancelled) {
@@ -94,7 +74,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     };
     window.addEventListener("arak:session-expired", handleExpiredSession);
-
     return () => {
       cancelled = true;
       window.removeEventListener("arak:session-expired", handleExpiredSession);
@@ -102,29 +81,29 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const acceptSession = (payload) => {
-    const profile = normalizeUser(payload?.user);
-    if (!payload?.access_token || !profile) {
-      throw new Error("لم يتم إنشاء جلسة دخول مكتملة");
-    }
+    if (!payload?.access_token || !payload?.user) throw new Error("لم يتم إنشاء جلسة دخول مكتملة");
     localStorage.setItem(TOKEN_KEY, payload.access_token);
     localStorage.setItem(SESSION_VERSION_KEY, SESSION_VERSION);
-    persistProfile(profile);
-    enrichWithAccess(profile).then(persistProfile);
-    return profile;
+    return persistProfile(payload.user);
   };
 
   const login = async (email, password) => {
-    const normalizedEmail = String(email || "").trim().toLowerCase();
-    const response = await api.post("/auth/login", { email: normalizedEmail, password });
-    const baseProfile = acceptSession(response.data);
-    const enriched = await enrichWithAccess(baseProfile);
-    return persistProfile(enriched);
+    const response = await api.post("/auth/login", {
+      email: String(email || "").trim().toLowerCase(),
+      password,
+    });
+    return acceptSession(response.data);
   };
 
-  const refreshAccess = async () => {
-    if (!user) return user;
-    return persistProfile(await enrichWithAccess(user));
+  const changePassword = async (currentPassword, newPassword) => {
+    const response = await api.post("/auth/change-password", {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+    return acceptSession(response.data);
   };
+
+  const refreshAccess = async () => user;
 
   const logout = async () => {
     try { await api.post("/auth/logout"); } catch {}
@@ -134,7 +113,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, acceptSession, refreshAccess, logout }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, changePassword, acceptSession, refreshAccess, logout }}>
       {children}
     </AuthContext.Provider>
   );
