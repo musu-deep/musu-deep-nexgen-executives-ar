@@ -29,7 +29,7 @@ export default function AdminPage() {
   const load = async () => {
     setLoading(true);
     try {
-      setUsers((await api.get("/users")).data || []);
+      setUsers((await api.get("/iam/users")).data || []);
     } catch (error) {
       toast.error(formatApiError(error?.response?.data?.detail) || "تعذر تحميل المستخدمين");
     } finally {
@@ -47,7 +47,7 @@ export default function AdminPage() {
   const submit = async (event) => {
     event.preventDefault();
     try {
-      const response = await api.post("/users/invite", form);
+      const response = await api.post("/iam/users/invite", form);
       setInviteResult(response.data);
       toast.success("تم إنشاء الدعوة الآمنة");
       setShowForm(false);
@@ -60,7 +60,7 @@ export default function AdminPage() {
 
   const resetInvite = async (person) => {
     try {
-      const response = await api.post(`/users/${person.id}/reset-invite`);
+      const response = await api.post(`/iam/users/${person.id}/reset-invite`);
       setInviteResult(response.data);
       toast.success("تم إلغاء الوصول السابق وإصدار دعوة جديدة");
       load();
@@ -71,7 +71,7 @@ export default function AdminPage() {
 
   const toggleActive = async (person) => {
     try {
-      await api.patch(`/users/${person.id}`, { active: !person.active });
+      await api.patch(`/iam/users/${person.id}`, { active: !person.active });
       toast.success(person.active ? "تم تعطيل الحساب" : "تم تفعيل الحساب");
       load();
     } catch (error) {
@@ -81,7 +81,7 @@ export default function AdminPage() {
 
   const changeRole = async (person, role) => {
     try {
-      await api.patch(`/users/${person.id}`, { role });
+      await api.patch(`/iam/users/${person.id}`, { role });
       toast.success("تم تحديث الدور الانتقالي");
       load();
     } catch (error) {
