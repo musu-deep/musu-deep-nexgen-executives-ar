@@ -26,6 +26,7 @@
     "api/auth/otp/verify.js": { "maxDuration": 30 }
   },
   "rewrites": [
+    { "source": "/api/access/:accessPath*", "destination": "/api/iam-users?accessPath=:accessPath*" },
     { "source": "/api/iam/users/invite", "destination": "/api/iam-users-invite" },
     { "source": "/api/iam/users/:userId/reset-invite", "destination": "/api/iam-user-reset-invite?userId=:userId" },
     { "source": "/api/iam/users/:userId", "destination": "/api/iam-user?userId=:userId" },
