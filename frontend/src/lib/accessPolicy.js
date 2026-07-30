@@ -37,7 +37,7 @@ const PATH_MODULES = [
 ];
 
 function explicitModules(user) {
-  if (!Array.isArray(user?.access_modules)) return null;
+  if (user?.access_fabric_ready !== true || !Array.isArray(user?.access_modules)) return null;
   return new Set(user.access_modules);
 }
 
@@ -46,9 +46,6 @@ function profileText(user) {
 }
 
 export function isFullAccessUser(user) {
-  if (explicitModules(user)) {
-    return user?.role === "ceo";
-  }
   return FULL_ACCESS_ROLES.has(user?.role);
 }
 
@@ -67,9 +64,9 @@ export function functionalAreaForUser(user) {
 }
 
 export function allowedModulesForUser(user) {
+  if (isFullAccessUser(user)) return null;
   const explicit = explicitModules(user);
   if (explicit) return explicit;
-  if (isFullAccessUser(user)) return null;
   const allowed = new Set(COMMON_MODULES);
   (AREA_MODULES[functionalAreaForUser(user)] || []).forEach((module) => allowed.add(module));
   if (user?.role === "admin") {
@@ -81,10 +78,11 @@ export function allowedModulesForUser(user) {
 
 export function canAccessModule(user, module) {
   if (!user) return false;
+  if (module === "dashboard") return true;
   if (module === "admin" || module === "access_control") return user?.role === "admin";
+  if (isFullAccessUser(user)) return true;
   const explicit = explicitModules(user);
   if (explicit) return explicit.has(module);
-  if (isFullAccessUser(user)) return true;
   if (FULL_ONLY_MODULES.has(module)) return false;
   return allowedModulesForUser(user)?.has(module) || false;
 }
