@@ -6,31 +6,17 @@
   "framework": "vite",
   "functions": {
     "api/[...path].js": { "maxDuration": 60 },
-    "api/iam-users.js": { "maxDuration": 60 },
-    "api/iam-users-invite.js": { "maxDuration": 60 },
-    "api/iam-user.js": { "maxDuration": 60 },
-    "api/iam-user-reset-invite.js": { "maxDuration": 60 },
-    "api/access/[...path].js": { "maxDuration": 60 },
     "api/users.js": { "maxDuration": 60 },
-    "api/users/invite.js": { "maxDuration": 60 },
-    "api/users/[userId].js": { "maxDuration": 60 },
-    "api/users/[userId]/reset-invite.js": { "maxDuration": 60 },
     "api/marketing.js": { "maxDuration": 60 },
     "api/auth/login.js": { "maxDuration": 30 },
     "api/auth/me.js": { "maxDuration": 30 },
-    "api/auth/invitation.js": { "maxDuration": 30 },
-    "api/auth/activate.js": { "maxDuration": 60 },
+    "api/auth/change-password.js": { "maxDuration": 60 },
     "api/auth/finance-login.js": { "maxDuration": 30 },
     "api/auth/group-accounts.js": { "maxDuration": 30 },
     "api/auth/otp/request.js": { "maxDuration": 30 },
     "api/auth/otp/verify.js": { "maxDuration": 30 }
   },
   "rewrites": [
-    { "source": "/api/access/:accessPath*", "destination": "/api/iam-users?accessPath=:accessPath*" },
-    { "source": "/api/iam/users/invite", "destination": "/api/iam-users-invite" },
-    { "source": "/api/iam/users/:userId/reset-invite", "destination": "/api/iam-user-reset-invite?userId=:userId" },
-    { "source": "/api/iam/users/:userId", "destination": "/api/iam-user?userId=:userId" },
-    { "source": "/api/iam/users", "destination": "/api/iam-users" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
