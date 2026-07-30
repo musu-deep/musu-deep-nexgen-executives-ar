@@ -5,8 +5,8 @@ const AuthContext = createContext(null);
 const PROFILE_KEY = "arak_user_profile";
 const TOKEN_KEY = "arak_token";
 const SESSION_VERSION_KEY = "arak_session_version";
-const SESSION_VERSION = "araak-access-fabric-v2";
-const BUILD_RELEASE = "ceo-office-vercel-iam-api-2026-07-30-v2";
+const SESSION_VERSION = "araak-access-fabric-v3";
+const BUILD_RELEASE = "ceo-office-vercel-iam-api-2026-07-30-v3";
 
 if (typeof window !== "undefined") {
   window.__ARAK_BUILD_RELEASE__ = BUILD_RELEASE;
