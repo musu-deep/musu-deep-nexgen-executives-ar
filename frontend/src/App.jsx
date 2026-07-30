@@ -7,6 +7,7 @@ import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { canAccessPath } from "./lib/accessPolicy";
 import ExecutiveLoginPage from "./pages/ExecutiveLoginPage";
+import ActivateAccountPage from "./pages/ActivateAccountPage";
 import RoleAwareDashboardPage from "./pages/RoleAwareDashboardPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
@@ -15,6 +16,7 @@ import ReportsPage from "./pages/ReportsPage";
 import TeamPage from "./pages/TeamPage";
 import HumanResourcesPage from "./pages/HumanResourcesPage";
 import AdminPage from "./pages/AdminPage";
+import AccessControlPage from "./pages/AccessControlPage";
 import MeetingsPage from "./pages/MeetingsPage";
 import MeetingRequestsPage from "./pages/MeetingRequestsPage";
 import DocumentsPage from "./pages/DocumentsPage";
@@ -66,8 +68,7 @@ function PublicOnly({ children }) {
 function LoginAppearanceToggle() {
   const location = useLocation();
   const { mode, toggleMode } = useTheme();
-  if (location.pathname !== "/login") return null;
-
+  if (!["/login", "/activate"].includes(location.pathname)) return null;
   return (
     <button type="button" onClick={toggleMode} className="theme-mode-toggle fixed top-5 left-5 z-[70] px-4 py-2.5 rounded-xl border border-white/10 bg-black/25 backdrop-blur-xl text-slate-200 flex items-center gap-2 text-sm font-bold shadow-xl" aria-label={mode === "light" ? "تشغيل الوضع الليلي" : "تشغيل الوضع النهاري"} title={mode === "light" ? "تشغيل الوضع الليلي" : "تشغيل الوضع النهاري"}>
       {mode === "light" ? <Sun size={17} className="text-yellow-500" /> : <Moon size={17} className="text-indigo-300" />}
@@ -88,6 +89,7 @@ function AppRoutes() {
       <LoginAppearanceToggle />
       <Routes>
         <Route path="/login" element={<PublicOnly><ExecutiveLoginPage /></PublicOnly>} />
+        <Route path="/activate" element={<PublicOnly><ActivateAccountPage /></PublicOnly>} />
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<RoleAwareDashboardPage />} />
@@ -116,7 +118,8 @@ function AppRoutes() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/team" element={<TeamPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminPage /></ProtectedRoute>} />
+          <Route path="/access-control" element={<ProtectedRoute roles={["admin"]}><AccessControlPage /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
