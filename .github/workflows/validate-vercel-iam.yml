@@ -1,0 +1,42 @@
+name: Validate Vercel IAM
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Validate serverless JavaScript
+        run: |
+          node --check lib/araak-iam.js
+          node --check lib/araak-iam-http.js
+          node --check api/staff-login.js
+          node --check api/staff-me.js
+          node --check 'api/access/[...path].js'
+          node --check api/users.js
+          node --check api/users/invite.js
+          node --check 'api/users/[userId].js'
+          node --check 'api/users/[userId]/reset-invite.js'
+          node --check api/auth/invitation.js
+          node --check api/auth/activate.js
+          node -e "JSON.parse(require('fs').readFileSync('vercel.json','utf8')); console.log('vercel.json valid')"
+
+      - name: Build frontend
+        run: |
+          npm --prefix frontend ci --legacy-peer-deps
+          npm --prefix frontend run build
