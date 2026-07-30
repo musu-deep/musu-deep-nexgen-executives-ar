@@ -1,0 +1,48 @@
+name: Live IAM Smoke
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-production-iam:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Wait for production IAM route
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://musu-deep-nexgen-executives-ar.vercel.app"
+          for attempt in $(seq 1 50); do
+            code=$(curl -sS -o /tmp/iam-probe.json -w '%{http_code}' "$base/api/iam/users" || true)
+            echo "attempt=$attempt code=$code body=$(cat /tmp/iam-probe.json 2>/dev/null || true)"
+            if [ "$code" = "401" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Production IAM route did not become ready" >&2
+          exit 1
+
+      - name: Verify login and invite route
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://musu-deep-nexgen-executives-ar.vercel.app"
+          login=$(curl -sS --fail-with-body \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"admin@company.demo","password":"ExecAgent2026!"}' \
+            "$base/api/auth/login")
+          token=$(printf '%s' "$login" | python -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+          code=$(curl -sS -o /tmp/invite-response.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer $token" \
+            -d '{}' \
+            "$base/api/iam/users/invite")
+          echo "invite_code=$code body=$(cat /tmp/invite-response.json)"
+          test "$code" = "422"
