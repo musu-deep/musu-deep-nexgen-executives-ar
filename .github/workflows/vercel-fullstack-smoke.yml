@@ -5,30 +5,34 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify production API, login and session
+      - name: Verify production API health and optional private login
         env:
           BASE_URL: https://musu-deep-nexgen-executives-ar-4dip.vercel.app
+          SMOKE_CEO_EMAIL: ${{ secrets.SMOKE_CEO_EMAIL }}
+          SMOKE_CEO_PASSWORD: ${{ secrets.SMOKE_CEO_PASSWORD }}
         run: |
           python - <<'PY'
           import json
           import os
           import time
-          import urllib.error
           import urllib.request
 
           base = os.environ["BASE_URL"].rstrip("/")
           last_error = "not started"
           for attempt in range(90):
               try:
-                  req = urllib.request.Request(
+                  request = urllib.request.Request(
                       base + "/api/openapi.json",
-                      headers={"User-Agent": "NEXGEN-Vercel-Smoke/1.0"},
+                      headers={"User-Agent": "NEXGEN-Vercel-Smoke/2.0"},
                   )
-                  with urllib.request.urlopen(req, timeout=20) as response:
+                  with urllib.request.urlopen(request, timeout=20) as response:
                       spec = json.loads(response.read().decode("utf-8"))
                   assert spec["info"]["title"] == "NEXGEN EXECUTIVES — النسخة العربية"
                   print("Vercel FastAPI ready on attempt", attempt + 1)
@@ -40,16 +44,19 @@ jobs:
           else:
               raise SystemExit("Vercel API did not become ready: " + last_error)
 
-          payload = json.dumps({
-              "email": "ceo@company.demo",
-              "password": "ExecAgent2026!",
-          }).encode("utf-8")
+          email = os.environ.get("SMOKE_CEO_EMAIL", "").strip()
+          password = os.environ.get("SMOKE_CEO_PASSWORD", "")
+          if not email or not password:
+              print("Private login smoke skipped: repository secrets are not configured.")
+              raise SystemExit(0)
+
+          payload = json.dumps({"email": email, "password": password}).encode("utf-8")
           login_request = urllib.request.Request(
               base + "/api/auth/login",
               data=payload,
               headers={
                   "Content-Type": "application/json",
-                  "User-Agent": "NEXGEN-Vercel-Smoke/1.0",
+                  "User-Agent": "NEXGEN-Vercel-Smoke/2.0",
               },
           )
           with urllib.request.urlopen(login_request, timeout=30) as response:
@@ -61,11 +68,11 @@ jobs:
               base + "/api/auth/me",
               headers={
                   "Authorization": "Bearer " + token,
-                  "User-Agent": "NEXGEN-Vercel-Smoke/1.0",
+                  "User-Agent": "NEXGEN-Vercel-Smoke/2.0",
               },
           )
           with urllib.request.urlopen(me_request, timeout=30) as response:
               me = json.loads(response.read().decode("utf-8"))
           assert me["user"]["role"] == "ceo"
-          print("Production Vercel login and auth/me passed")
+          print("Production Vercel private login and auth/me passed")
           PY
