@@ -1,7 +1,7 @@
 name: Vercel Full Stack Smoke
 
 on:
-  pull_request:
+  push:
     branches: [main]
   workflow_dispatch:
 
@@ -11,10 +11,12 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - name: Verify production API health and optional private login
+      - name: Verify production release and optional private login
         env:
           BASE_URL: https://musu-deep-nexgen-executives-ar-4dip.vercel.app
+          EXPECTED_RELEASE: ceo-office-official-team-nine-2026-08-01-v3
           SMOKE_CEO_EMAIL: ${{ secrets.SMOKE_CEO_EMAIL }}
           SMOKE_CEO_PASSWORD: ${{ secrets.SMOKE_CEO_PASSWORD }}
         run: |
@@ -25,24 +27,28 @@ jobs:
           import urllib.request
 
           base = os.environ["BASE_URL"].rstrip("/")
+          expected_release = os.environ["EXPECTED_RELEASE"]
           last_error = "not started"
           for attempt in range(90):
               try:
                   request = urllib.request.Request(
-                      base + "/api/openapi.json",
-                      headers={"User-Agent": "NEXGEN-Vercel-Smoke/2.0"},
+                      base + "/api/health",
+                      headers={"User-Agent": "ARAAK-Vercel-Smoke/3.0"},
                   )
                   with urllib.request.urlopen(request, timeout=20) as response:
-                      spec = json.loads(response.read().decode("utf-8"))
-                  assert spec["info"]["title"] == "NEXGEN EXECUTIVES — النسخة العربية"
-                  print("Vercel FastAPI ready on attempt", attempt + 1)
+                      health = json.loads(response.read().decode("utf-8"))
+                  assert health.get("status") == "ready"
+                  assert health.get("release") == expected_release, health
+                  assert health.get("directory_version") == "official-team-nine-v3", health
+                  assert health.get("authorized_users") == 9, health
+                  print("Production release ready on attempt", attempt + 1, health["release"])
                   break
               except Exception as exc:
                   last_error = repr(exc)
-                  print("Waiting for Vercel API:", last_error)
+                  print("Waiting for production release:", last_error)
                   time.sleep(10)
           else:
-              raise SystemExit("Vercel API did not become ready: " + last_error)
+              raise SystemExit("Production release did not become ready: " + last_error)
 
           email = os.environ.get("SMOKE_CEO_EMAIL", "").strip()
           password = os.environ.get("SMOKE_CEO_PASSWORD", "")
@@ -56,23 +62,24 @@ jobs:
               data=payload,
               headers={
                   "Content-Type": "application/json",
-                  "User-Agent": "NEXGEN-Vercel-Smoke/2.0",
+                  "User-Agent": "ARAAK-Vercel-Smoke/3.0",
               },
           )
           with urllib.request.urlopen(login_request, timeout=30) as response:
               login = json.loads(response.read().decode("utf-8"))
           token = login["access_token"]
           assert login["user"]["role"] == "ceo"
+          assert login.get("directory_version") == "official-team-nine-v3"
 
           me_request = urllib.request.Request(
               base + "/api/auth/me",
               headers={
                   "Authorization": "Bearer " + token,
-                  "User-Agent": "NEXGEN-Vercel-Smoke/2.0",
+                  "User-Agent": "ARAAK-Vercel-Smoke/3.0",
               },
           )
           with urllib.request.urlopen(me_request, timeout=30) as response:
               me = json.loads(response.read().decode("utf-8"))
           assert me["user"]["role"] == "ceo"
-          print("Production Vercel private login and auth/me passed")
+          print("Production private login and auth/me passed")
           PY
