@@ -38,6 +38,7 @@ jobs:
           DB_NAME: nexgen_executives_ar_ci
           JWT_SECRET: ci-validation-secret-with-more-than-32-characters
           EMBEDDED_DATA_FILE: /tmp/nexgen-executives-ci.json
+          EMBEDDED_TEST_PASSWORD: EmbeddedCiOnly!2026
         shell: bash
         run: |
           set +e
@@ -61,7 +62,7 @@ jobs:
               raise SystemExit(f"API did not start: {last!r}")
 
           def login():
-              body = json.dumps({"email":"ceo@company.demo","password":"ExecAgent2026!"}).encode()
+              body = json.dumps({"email":"ceo@arak.com","password":"EmbeddedCiOnly!2026"}).encode()
               request = urllib.request.Request(base + "/api/auth/login", data=body, headers={"Content-Type":"application/json"})
               with urllib.request.urlopen(request, timeout=10) as response:
                   return json.loads(response.read().decode())["access_token"]
@@ -112,7 +113,7 @@ jobs:
           else:
               raise SystemExit("API did not restart")
 
-          body = json.dumps({"email":"ceo@company.demo","password":"ExecAgent2026!"}).encode()
+          body = json.dumps({"email":"ceo@arak.com","password":"EmbeddedCiOnly!2026"}).encode()
           request = urllib.request.Request(base + "/api/auth/login", data=body, headers={"Content-Type":"application/json"})
           with urllib.request.urlopen(request, timeout=10) as response:
               token = json.loads(response.read().decode())["access_token"]
