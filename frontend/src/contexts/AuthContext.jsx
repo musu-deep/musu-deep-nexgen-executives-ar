@@ -5,8 +5,8 @@ const AuthContext = createContext(null);
 const PROFILE_KEY = "arak_user_profile";
 const TOKEN_KEY = "arak_token";
 const SESSION_VERSION_KEY = "arak_session_version";
-const SESSION_VERSION = "araak-authorized-six-v2";
-const BUILD_RELEASE = "ceo-office-authorized-six-2026-08-01-v2";
+const SESSION_VERSION = "araak-official-team-nine-v3";
+const BUILD_RELEASE = "ceo-office-official-team-nine-2026-08-01-v3";
 
 if (typeof window !== "undefined") {
   window.__ARAK_BUILD_RELEASE__ = BUILD_RELEASE;
