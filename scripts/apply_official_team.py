@@ -8,6 +8,7 @@ import team_patch_ui_tests
 def main() -> None:
     team_patch_core.apply()
     team_patch_backend.apply()
+    team_patch_ui_tests.patch_workflows = lambda: None
     team_patch_ui_tests.apply()
 
     root = Path(__file__).resolve().parents[1]
