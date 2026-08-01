@@ -34,7 +34,7 @@ jobs:
           node --check 'api/[...path].js'
           node --check scripts/test_vercel_iam.mjs
           python -m py_compile backend/server.py backend/arabic_server.py backend/embedded_server.py
-          ! grep -R -E 'ExecAgent2026!|@company\.demo' api backend frontend lib scripts
+          ! grep -R -E 'ExecAgent2026!|@company\.demo' .github api backend frontend lib scripts
           node -e "JSON.parse(require('fs').readFileSync('vercel.json','utf8')); console.log('vercel.json valid')"
 
       - name: Exercise credential-safe IAM routes
