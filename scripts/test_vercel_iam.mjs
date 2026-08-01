@@ -4,6 +4,12 @@ import changePasswordHandler from "../api/auth/change-password.js";
 import usersHandler from "../api/users.js";
 import businessHandler from "../api/[...path].js";
 
+const temporaryPassword = String(process.env.TEST_ADMIN_TEMP_PASSWORD || "");
+if (!temporaryPassword) {
+  console.log("IAM functional test skipped: TEST_ADMIN_TEMP_PASSWORD is not configured.");
+  process.exit(0);
+}
+
 function requestFor({ method = "GET", url = "/", body = null, token = "", query = {} } = {}) {
   return { method, url, body, query, headers: token ? { authorization: `Bearer ${token}` } : {} };
 }
@@ -33,7 +39,7 @@ function expect(condition, message, context) {
 const login = await invoke(loginHandler, requestFor({
   method: "POST",
   url: "/api/auth/login",
-  body: { email: "admin@arak.com", password: "Arak@2026" },
+  body: { email: "admin@arak.com", password: temporaryPassword },
 }));
 expect(login.status === 200, "temporary administrator login must succeed", login);
 expect(login.body?.user?.must_change_password === true, "first login must require password change", login);
@@ -46,13 +52,14 @@ expect(me.body?.user?.must_change_password === true, "session must preserve pass
 
 const users = await invoke(usersHandler, requestFor({ method: "GET", url: "/api/users", token }));
 expect(users.status === 200 && Array.isArray(users.body), "users list must be available", users);
-expect(users.body.length === 16, "rebuilt directory must contain the expected users", users);
+expect(users.body.length === 6, "directory must contain only the approved executive accounts", users);
 
+const newPassword = `TestOnly!${Date.now()}Aa1`;
 const changed = await invoke(changePasswordHandler, requestFor({
   method: "POST",
   url: "/api/auth/change-password",
   token,
-  body: { current_password: "Arak@2026", new_password: "NewArak@2026!" },
+  body: { current_password: temporaryPassword, new_password: newPassword },
 }));
 expect(changed.status === 200, "first-login password change must succeed", changed);
 expect(changed.body?.user?.must_change_password === false, "changed account must be released from first-login gate", changed);
@@ -61,7 +68,7 @@ token = changed.body.access_token;
 const newLogin = await invoke(loginHandler, requestFor({
   method: "POST",
   url: "/api/auth/login",
-  body: { email: "admin@arak.com", password: "NewArak@2026!" },
+  body: { email: "admin@arak.com", password: newPassword },
 }));
 expect(newLogin.status === 200 && newLogin.body?.user?.must_change_password === false, "new password must authenticate", newLogin);
 
@@ -74,7 +81,7 @@ const rebuilt = await invoke(usersHandler, requestFor({
   token,
   body: { action: "rebuild" },
 }));
-expect(rebuilt.status === 200 && rebuilt.body?.users?.length === 16, "administrator must be able to rebuild the directory", rebuilt);
-expect(rebuilt.body?.temporary_password === "Arak@2026", "rebuild must return the temporary password", rebuilt);
+expect(rebuilt.status === 200 && rebuilt.body?.users?.length === 6, "administrator must be able to rebuild the approved directory", rebuilt);
+expect(!Object.prototype.hasOwnProperty.call(rebuilt.body || {}, "temporary_password"), "API must not reveal temporary passwords", rebuilt);
 
-console.log("Temporary-password first-login checks passed.");
+console.log("Authorized executive first-login checks passed.");
