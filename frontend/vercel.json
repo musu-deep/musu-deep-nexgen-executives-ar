@@ -5,6 +5,9 @@
   "installCommand": "npm install --legacy-peer-deps",
   "outputDirectory": "dist",
   "functions": {
+    "api/v4.js": {
+      "maxDuration": 60
+    },
     "api/index.py": {
       "maxDuration": 60,
       "includeFiles": "api/backend/**",
@@ -33,11 +36,7 @@
   "rewrites": [
     { "source": "/api/executive-data", "destination": "/api/executive_data" },
     { "source": "/api/auth/group-accounts", "destination": "/api/group-accounts" },
-    { "source": "/api/auth/login", "destination": "/api/unified?route=auth/login" },
-    { "source": "/api/auth/finance-login", "destination": "/api/unified?route=auth/finance-login" },
-    { "source": "/api/auth/me", "destination": "/api/unified?route=auth/me" },
-    { "source": "/api/auth/logout", "destination": "/api/unified?route=auth/logout" },
-    { "source": "/api/:path*", "destination": "/api/secure_unified_v2?route=:path*" },
+    { "source": "/api/:path*", "destination": "/api/v4?route=:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
