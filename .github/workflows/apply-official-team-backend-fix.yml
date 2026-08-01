@@ -1,37 +1,32 @@
-name: Apply Official Team Backend Fix
+name: Official Team Backend Validation
 
 on:
-  push:
-    branches: [security/official-team-directory]
-    paths: [.github/workflows/apply-official-team-backend-fix.yml]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  fix:
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: security/official-team-directory
-          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Patch and validate backend
-        run: |
-          python scripts/fix_official_team_backend.py
-          python -m py_compile backend/server.py backend/arabic_server.py backend/embedded_server.py
-          rm scripts/fix_official_team_backend.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
-      - name: Commit backend correction
+      - name: Validate backend and team permissions
         run: |
-          git config user.name "ARAAK Access Automation"
-          git config user.email "access-automation@users.noreply.github.com"
-          git add backend/server.py scripts/fix_official_team_backend.py
-          git diff --cached --check
-          git commit -m "تصحيح تهيئة ملاك المشروعات وصلاحيات الاعتماد"
-          git push origin HEAD:security/official-team-directory
+          python -m pip install -r backend/requirements.txt --quiet
+          python -m py_compile backend/server.py backend/arabic_server.py backend/embedded_server.py
+          node --check lib/araak-password-directory.js
+          node --check lib/authorized-access.js
+          node --check 'api/[...path].js'
+          node --check scripts/test_team_permissions.mjs
+          node scripts/test_team_permissions.mjs
