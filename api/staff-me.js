@@ -1,7 +1,5 @@
-import {
-  currentPasswordDirectoryUser,
-  passwordDirectoryApiError,
-} from "../lib/araak-password-directory.js";
+import { passwordDirectoryApiError } from "../lib/araak-password-directory.js";
+import { currentAuthorizedExecutiveUser } from "../lib/authorized-access.js";
 
 export default async function handler(request, response) {
   response.setHeader("Cache-Control", "no-store");
@@ -9,7 +7,7 @@ export default async function handler(request, response) {
   if (request.method !== "GET") return response.status(405).json({ detail: "Method not allowed" });
 
   try {
-    const user = await currentPasswordDirectoryUser(request);
+    const user = await currentAuthorizedExecutiveUser(request);
     if (!user) return response.status(401).json({ detail: "Not authenticated" });
     return response.status(200).json({ user });
   } catch (error) {
