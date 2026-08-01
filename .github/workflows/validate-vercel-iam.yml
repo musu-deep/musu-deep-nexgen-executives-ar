@@ -23,21 +23,18 @@ jobs:
 
       - name: Validate serverless JavaScript
         run: |
+          node --check lib/araak-password-directory.js
+          node --check lib/authorized-access.js
           node --check lib/araak-iam.js
           node --check lib/araak-iam-http.js
           node --check api/staff-login.js
           node --check api/staff-me.js
-          node --check 'api/access/[...path].js'
           node --check api/users.js
-          node --check api/users/invite.js
-          node --check 'api/users/[userId].js'
-          node --check 'api/users/[userId]/reset-invite.js'
-          node --check api/auth/invitation.js
-          node --check api/auth/activate.js
+          node --check api/auth/change-password.js
           node --check scripts/test_vercel_iam.mjs
           node -e "JSON.parse(require('fs').readFileSync('vercel.json','utf8')); console.log('vercel.json valid')"
 
-      - name: Exercise hosted IAM routes
+      - name: Exercise credential-safe IAM routes
         run: node scripts/test_vercel_iam.mjs
 
       - name: Build frontend
