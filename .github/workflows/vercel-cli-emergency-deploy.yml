@@ -7,7 +7,7 @@ on:
     paths: [.github/workflows/vercel-cli-emergency-deploy.yml]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   deploy:
@@ -20,42 +20,102 @@ jobs:
       FALLBACK_PROJECT: musu-deep-nexgen-executives-ar-4dip
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Verify Vercel deployment credentials
+      - name: Deploy and verify production release
+        id: deploy
+        shell: bash
         run: |
+          set +e
+          mkdir -p ops
+          PROJECT="${CONFIGURED_PROJECT:-$FALLBACK_PROJECT}"
+          TOKEN_CONFIGURED=false
+          DEPLOY_STATUS=failed
+          FAILURE_CODE=unknown
+          DEPLOYMENT_URL=""
+
           if [ -z "$VERCEL_TOKEN" ]; then
-            echo "::error::Repository secret VERCEL_TOKEN is not configured."
-            exit 1
+            FAILURE_CODE=missing_vercel_token
+          else
+            TOKEN_CONFIGURED=true
+            npm install --global vercel@latest > vercel-install.log 2>&1
+            INSTALL_CODE=$?
+            if [ $INSTALL_CODE -ne 0 ]; then
+              FAILURE_CODE=vercel_cli_install_failed
+            else
+              EXTRA_ARGS=()
+              if [ -n "$VERCEL_ORG_ID" ]; then EXTRA_ARGS+=(--scope "$VERCEL_ORG_ID"); fi
+              vercel deploy --prod --yes --token "$VERCEL_TOKEN" --project "$PROJECT" "${EXTRA_ARGS[@]}" > vercel-deploy.log 2>&1
+              DEPLOY_CODE=$?
+              if [ $DEPLOY_CODE -ne 0 ]; then
+                FAILURE_CODE=vercel_cli_deploy_failed
+              else
+                DEPLOYMENT_URL="$(tail -n 1 vercel-deploy.log | tr -d '\r')"
+                vercel curl /api/health --deployment "$DEPLOYMENT_URL" --token "$VERCEL_TOKEN" > health.json 2> vercel-curl.log
+                CURL_CODE=$?
+                if [ $CURL_CODE -ne 0 ]; then
+                  FAILURE_CODE=health_request_failed
+                else
+                  node - <<'NODE'
+                  const fs = require('fs');
+                  const health = JSON.parse(fs.readFileSync('health.json', 'utf8'));
+                  if (health.release !== 'ceo-office-official-team-nine-2026-08-01-v3') process.exit(10);
+                  if (health.directory_version !== 'official-team-nine-v3') process.exit(11);
+                  if (health.authorized_users !== 9) process.exit(12);
+                  NODE
+                  VERIFY_CODE=$?
+                  if [ $VERIFY_CODE -eq 0 ]; then
+                    DEPLOY_STATUS=success
+                    FAILURE_CODE=""
+                  else
+                    FAILURE_CODE=release_verification_failed
+                  fi
+                fi
+              fi
+            fi
           fi
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+          export PROJECT TOKEN_CONFIGURED DEPLOY_STATUS FAILURE_CODE DEPLOYMENT_URL
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
 
-      - name: Deploy current main release to production
-        run: |
-          PROJECT="${CONFIGURED_PROJECT:-$FALLBACK_PROJECT}"
-          EXTRA_ARGS=()
-          if [ -n "$VERCEL_ORG_ID" ]; then EXTRA_ARGS+=(--scope "$VERCEL_ORG_ID"); fi
-          vercel deploy --prod --yes --token "$VERCEL_TOKEN" --project "$PROJECT" "${EXTRA_ARGS[@]}" | tee deployment-url.txt
-          tail -n 1 deployment-url.txt > deployment-url-clean.txt
+          data = {
+              "checked_at": datetime.now(timezone.utc).isoformat(),
+              "commit": os.environ.get("GITHUB_SHA", ""),
+              "project": os.environ.get("PROJECT", ""),
+              "token_configured": os.environ.get("TOKEN_CONFIGURED") == "true",
+              "status": os.environ.get("DEPLOY_STATUS", "failed"),
+              "failure_code": os.environ.get("FAILURE_CODE", "unknown"),
+              "deployment_url": os.environ.get("DEPLOYMENT_URL", ""),
+              "expected_release": "ceo-office-official-team-nine-2026-08-01-v3",
+              "expected_directory_version": "official-team-nine-v3",
+              "expected_authorized_users": 9,
+          }
+          with open("ops/vercel-cli-deploy-status.json", "w", encoding="utf-8") as handle:
+              json.dump(data, handle, ensure_ascii=False, indent=2)
+              handle.write("\n")
+          PY
 
-      - name: Verify official team authentication release
+          echo "status=$DEPLOY_STATUS" >> "$GITHUB_OUTPUT"
+
+      - name: Publish deployment result
+        if: always()
         run: |
-          DEPLOYMENT_URL="$(cat deployment-url-clean.txt)"
-          vercel curl /api/health --deployment "$DEPLOYMENT_URL" --token "$VERCEL_TOKEN" > health.json
-          cat health.json
-          node - <<'NODE'
-          const fs = require('fs');
-          const health = JSON.parse(fs.readFileSync('health.json', 'utf8'));
-          if (health.release !== 'ceo-office-official-team-nine-2026-08-01-v3') {
-            throw new Error(`Unexpected release: ${JSON.stringify(health)}`);
-          }
-          if (health.directory_version !== 'official-team-nine-v3' || health.authorized_users !== 9) {
-            throw new Error(`Unexpected directory: ${JSON.stringify(health)}`);
-          }
-          console.log('Official team production release verified.');
-          NODE
+          git config user.name "ARAAK Deployment Bot"
+          git config user.email "deployment-bot@users.noreply.github.com"
+          git add ops/vercel-cli-deploy-status.json
+          git diff --cached --check
+          git commit -m "تسجيل نتيجة نشر Vercel الاحتياطي" || exit 0
+          git push origin HEAD:main
+
+      - name: Fail when production was not verified
+        if: always()
+        run: |
+          node -e "const s=require('./ops/vercel-cli-deploy-status.json'); if(s.status!=='success'){console.error(s); process.exit(1)}"
