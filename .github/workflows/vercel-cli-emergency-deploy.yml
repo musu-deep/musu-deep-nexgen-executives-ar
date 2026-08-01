@@ -1,14 +1,10 @@
 name: Vercel CLI Emergency Deploy
-# Triggered to publish the official nine-account authentication release.
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: [.github/workflows/vercel-cli-emergency-deploy.yml]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   deploy:
@@ -16,107 +12,38 @@ jobs:
     timeout-minutes: 25
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      CONFIGURED_PROJECT: ${{ secrets.VERCEL_PROJECT_ID }}
-      FALLBACK_PROJECT: musu-deep-nexgen-executives-ar-4dip
+      VERCEL_SCOPE: reydas-projects
+      VERCEL_PROJECT: musu-deep-nexgen-executives-ar-4dip
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Deploy and verify production release
-        id: deploy
-        shell: bash
+      - name: Verify Vercel token
         run: |
-          set +e
-          mkdir -p ops
-          PROJECT="${CONFIGURED_PROJECT:-$FALLBACK_PROJECT}"
-          TOKEN_CONFIGURED=false
-          DEPLOY_STATUS=failed
-          FAILURE_CODE=unknown
-          DEPLOYMENT_URL=""
-
           if [ -z "$VERCEL_TOKEN" ]; then
-            FAILURE_CODE=missing_vercel_token
-          else
-            TOKEN_CONFIGURED=true
-            npm install --global vercel@latest > vercel-install.log 2>&1
-            INSTALL_CODE=$?
-            if [ $INSTALL_CODE -ne 0 ]; then
-              FAILURE_CODE=vercel_cli_install_failed
-            else
-              EXTRA_ARGS=()
-              if [ -n "$VERCEL_ORG_ID" ]; then EXTRA_ARGS+=(--scope "$VERCEL_ORG_ID"); fi
-              vercel deploy --prod --yes --token "$VERCEL_TOKEN" --project "$PROJECT" "${EXTRA_ARGS[@]}" > vercel-deploy.log 2>&1
-              DEPLOY_CODE=$?
-              if [ $DEPLOY_CODE -ne 0 ]; then
-                FAILURE_CODE=vercel_cli_deploy_failed
-              else
-                DEPLOYMENT_URL="$(tail -n 1 vercel-deploy.log | tr -d '\r')"
-                vercel curl /api/health --deployment "$DEPLOYMENT_URL" --token "$VERCEL_TOKEN" > health.json 2> vercel-curl.log
-                CURL_CODE=$?
-                if [ $CURL_CODE -ne 0 ]; then
-                  FAILURE_CODE=health_request_failed
-                else
-                  node - <<'NODE'
-                  const fs = require('fs');
-                  const health = JSON.parse(fs.readFileSync('health.json', 'utf8'));
-                  if (health.release !== 'ceo-office-official-team-nine-2026-08-01-v3') process.exit(10);
-                  if (health.directory_version !== 'official-team-nine-v3') process.exit(11);
-                  if (health.authorized_users !== 9) process.exit(12);
-                  NODE
-                  VERIFY_CODE=$?
-                  if [ $VERIFY_CODE -eq 0 ]; then
-                    DEPLOY_STATUS=success
-                    FAILURE_CODE=""
-                  else
-                    FAILURE_CODE=release_verification_failed
-                  fi
-                fi
-              fi
-            fi
+            echo "::error::أضف VERCEL_TOKEN إلى GitHub Actions secrets ثم أعد تشغيل هذا المسار."
+            exit 2
           fi
 
-          export PROJECT TOKEN_CONFIGURED DEPLOY_STATUS FAILURE_CODE DEPLOYMENT_URL
-          python - <<'PY'
-          import json, os
-          from datetime import datetime, timezone
-
-          data = {
-              "checked_at": datetime.now(timezone.utc).isoformat(),
-              "commit": os.environ.get("GITHUB_SHA", ""),
-              "project": os.environ.get("PROJECT", ""),
-              "token_configured": os.environ.get("TOKEN_CONFIGURED") == "true",
-              "status": os.environ.get("DEPLOY_STATUS", "failed"),
-              "failure_code": os.environ.get("FAILURE_CODE", "unknown"),
-              "deployment_url": os.environ.get("DEPLOYMENT_URL", ""),
-              "expected_release": "ceo-office-official-team-nine-2026-08-01-v3",
-              "expected_directory_version": "official-team-nine-v3",
-              "expected_authorized_users": 9,
-          }
-          with open("ops/vercel-cli-deploy-status.json", "w", encoding="utf-8") as handle:
-              json.dump(data, handle, ensure_ascii=False, indent=2)
-              handle.write("\n")
-          PY
-
-          echo "status=$DEPLOY_STATUS" >> "$GITHUB_OUTPUT"
-
-      - name: Publish deployment result
-        if: always()
+      - name: Install and link Vercel CLI
         run: |
-          git config user.name "ARAAK Deployment Bot"
-          git config user.email "deployment-bot@users.noreply.github.com"
-          git add ops/vercel-cli-deploy-status.json
-          git diff --cached --check
-          git commit -m "تسجيل نتيجة نشر Vercel الاحتياطي" || exit 0
-          git push origin HEAD:main
+          npm install --global vercel@latest
+          vercel link --yes --project "$VERCEL_PROJECT" --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN"
+          vercel pull --yes --environment=production --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN"
 
-      - name: Fail when production was not verified
-        if: always()
+      - name: Build and deploy production
         run: |
-          node -e "const s=require('./ops/vercel-cli-deploy-status.json'); if(s.status!=='success'){console.error(s); process.exit(1)}"
+          vercel build --prod --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN" | tee deployment-url.txt
+          tail -n 1 deployment-url.txt > deployment-url-clean.txt
+
+      - name: Verify official authentication release
+        run: |
+          DEPLOYMENT_URL="$(cat deployment-url-clean.txt)"
+          vercel curl /api/health --deployment "$DEPLOYMENT_URL" --token "$VERCEL_TOKEN" > health.json
+          node -e "const h=require('./health.json'); if(h.release!=='ceo-office-official-team-nine-2026-08-01-v3'||h.directory_version!=='official-team-nine-v3'||h.authorized_users!==9){console.error(h);process.exit(1)};console.log(h)"
