@@ -1,0 +1,61 @@
+name: Vercel CLI Emergency Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/vercel-cli-emergency-deploy.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      CONFIGURED_PROJECT: ${{ secrets.VERCEL_PROJECT_ID }}
+      FALLBACK_PROJECT: musu-deep-nexgen-executives-ar-4dip
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify Vercel deployment credentials
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::Repository secret VERCEL_TOKEN is not configured."
+            exit 1
+          fi
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Deploy current main release to production
+        run: |
+          PROJECT="${CONFIGURED_PROJECT:-$FALLBACK_PROJECT}"
+          EXTRA_ARGS=()
+          if [ -n "$VERCEL_ORG_ID" ]; then EXTRA_ARGS+=(--scope "$VERCEL_ORG_ID"); fi
+          vercel deploy --prod --yes --token "$VERCEL_TOKEN" --project "$PROJECT" "${EXTRA_ARGS[@]}" | tee deployment-url.txt
+          tail -n 1 deployment-url.txt > deployment-url-clean.txt
+
+      - name: Verify official team authentication release
+        run: |
+          DEPLOYMENT_URL="$(cat deployment-url-clean.txt)"
+          vercel curl /api/health --deployment "$DEPLOYMENT_URL" --token "$VERCEL_TOKEN" > health.json
+          cat health.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const health = JSON.parse(fs.readFileSync('health.json', 'utf8'));
+          if (health.release !== 'ceo-office-official-team-nine-2026-08-01-v3') {
+            throw new Error(`Unexpected release: ${JSON.stringify(health)}`);
+          }
+          if (health.directory_version !== 'official-team-nine-v3' || health.authorized_users !== 9) {
+            throw new Error(`Unexpected directory: ${JSON.stringify(health)}`);
+          }
+          console.log('Official team production release verified.');
+          NODE
