@@ -22,6 +22,9 @@ for _symbol in dir(_LEGACY):
     if not _symbol.startswith("_"):
         globals()[_symbol] = getattr(_LEGACY, _symbol)
 
+# Arabic runtime imports this internal helper explicitly.
+_call_gemini = getattr(_LEGACY, "_call_gemini")
+
 from . import secure_access as secure_access  # noqa: E402,F401
 from . import access_fabric as access_fabric  # noqa: E402,F401
 from . import access_hotfix as access_hotfix  # noqa: E402,F401
