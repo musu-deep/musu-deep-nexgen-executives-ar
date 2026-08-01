@@ -6,9 +6,34 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  sanitize-legacy-auth:
+    if: github.event_name == 'pull_request' && github.head_ref == 'security/authorized-users-only'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: security/authorized-users-only
+          fetch-depth: 0
+
+      - name: Apply deterministic source sanitizer
+        run: python .github/scripts/sanitize_auth_sources.py
+
+      - name: Commit sanitized sources when needed
+        run: |
+          git config user.name "ARAAK Security Automation"
+          git config user.email "security-automation@users.noreply.github.com"
+          git add api/'[...path].js' backend/server.py backend/arabic_server.py .github/workflows/arabic-version-ci.yml
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "Legacy sources already sanitized."
+          else
+            git commit -m "Sanitize remaining legacy authentication sources"
+            git push origin HEAD:security/authorized-users-only
+          fi
+
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
