@@ -415,7 +415,7 @@ async def delete_task(task_id: str, user=Depends(get_current_user)):
     return {"ok": True}
 
 @api_router.post("/tasks/{task_id}/approve")
-async def approve_task(task_id: str, user=Depends(require_roles("admin", "ceo", "vp_development", "vp_investment"))):
+async def approve_task(task_id: str, user=Depends(require_roles("admin", "ceo", "vp_development", "national_executive", "finance"))):
     await db.tasks.update_one({"id": task_id}, {"$set": {"status": "completed", "approved_by": user["id"], "approved_at": now_iso(), "updated_at": now_iso()}})
     t = await db.tasks.find_one({"id": task_id}, {"_id": 0})
     return t
@@ -752,11 +752,11 @@ async def seed_data():
     if await db.projects.count_documents({}) == 0:
         owner_map = {
             "academy": user_id_by_role.get("vp_development"),
-            "digital": user_id_by_role.get("vp_development"),
+            "digital": user_id_by_role.get("tech_supervisor") or user_id_by_role.get("vp_development"),
             "development": user_id_by_role.get("vp_development"),
             "corporate": user_id_by_role.get("vp_development"),
-            "arak_development": user_id_by_role.get("dev_manager"),
-            "investment": user_id_by_role.get("vp_investment"),
+            "arak_development": user_id_by_role.get("national_executive"),
+            "investment": user_id_by_role.get("finance"),
         }
 
         for p in SEED_PROJECTS:
