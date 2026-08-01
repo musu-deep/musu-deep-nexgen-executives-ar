@@ -1,17 +1,16 @@
 import crypto from "node:crypto";
 
 const SECRET = process.env.JWT_SECRET || "nexgen-vercel-hosted-demo-secret-2026";
-const DEMO_PASSWORD = "ExecAgent2026!";
 const now = () => new Date().toISOString();
 const id = (prefix = "id") => `${prefix}_${crypto.randomUUID()}`;
 
 const USERS = [
-  { id: "usr_admin", email: "admin@company.demo", name: "مدير المنصة", role: "admin", title: "مدير المنصة التنفيذية", active: true },
-  { id: "usr_ceo", email: "ceo@company.demo", name: "الرئيس التنفيذي", role: "ceo", title: "الرئيس التنفيذي", active: true },
-  { id: "usr_dev", email: "development@company.demo", name: "نائب الرئيس التنفيذي للتنمية", role: "vp_development", title: "نائب الرئيس التنفيذي للتنمية", active: true },
-  { id: "usr_inv", email: "investment@company.demo", name: "نائب الرئيس التنفيذي للاستثمار", role: "vp_investment", title: "نائب الرئيس التنفيذي للاستثمار", active: true },
-  { id: "usr_mgr", email: "manager@company.demo", name: "مدير وحدة الأعمال", role: "dev_manager", title: "مدير العمليات والتنفيذ", active: true },
-  { id: "usr_track", email: "followup@company.demo", name: "المتابعة التنفيذية", role: "tracker", title: "المتابعة التنفيذية", active: true },
+  { id: "usr_admin", email: "admin@arak.com", name: "مدير النظام", role: "admin", title: "مدير النظام والمنصة", active: true },
+  { id: "usr_ceo", email: "ceo@arak.com", name: "د. علي العتيبي", role: "ceo", title: "رئيس مجلس الإدارة والرئيس التنفيذي", active: true },
+  { id: "usr_dev", email: "vp.dev@arak.com", name: "د. لؤي عبد الله أحمد", role: "vp_development", title: "نائب الرئيس التنفيذي للتنمية", active: true },
+  { id: "usr_inv", email: "vp.invest@arak.com", name: "نائب الرئيس التنفيذي للاستثمار", role: "vp_investment", title: "نائب الرئيس التنفيذي للاستثمار", active: true },
+  { id: "usr_mgr", email: "dev.manager@arak.com", name: "مدير وحدة الأعمال", role: "dev_manager", title: "مدير العمليات والتنفيذ", active: true },
+  { id: "usr_track", email: "tracker@arak.com", name: "المتابعة التنفيذية", role: "tracker", title: "مسؤول المتابعة التنفيذية", active: true },
 ];
 
 const PROJECTS = [
@@ -249,10 +248,7 @@ export default async function handler(request, response) {
 
   if (route === "health" && method === "GET") return send(response, 200, { status: "ready", service: "NEXGEN EXECUTIVES", runtime: "vercel-node-full" });
   if (route === "auth/login" && method === "POST") {
-    const email = String(payload.email || "").toLowerCase();
-    const user = store.users.find((item) => item.email === email && item.active !== false);
-    if (!user || payload.password !== DEMO_PASSWORD) return send(response, 401, { detail: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
-    return send(response, 200, { user: safeUser(user), access_token: signToken(user) });
+    return send(response, 410, { detail: "استخدم مسار الهوية المؤسسية المعتمد." });
   }
   if (route === "auth/logout" && method === "POST") return send(response, 200, { ok: true });
   if (route === "theme" && method === "GET") return send(response, 200, { active_theme: store.theme });

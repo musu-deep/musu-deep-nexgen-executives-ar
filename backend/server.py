@@ -128,6 +128,10 @@ class LoginInput(BaseModel):
     email: EmailStr
     password: str
 
+class PasswordChangeInput(BaseModel):
+    current_password: str
+    new_password: str
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
@@ -248,29 +252,45 @@ async def logout(response: Response, user=Depends(get_current_user)):
 async def me(user=Depends(get_current_user)):
     return {"user": user}
 
+@api_router.post("/auth/change-password")
+async def change_password(payload: PasswordChangeInput, response: Response, user=Depends(get_current_user)):
+    stored = await db.users.find_one({"id": user["id"]})
+    if not stored or not verify_password(payload.current_password, stored.get("password_hash", "")):
+        raise HTTPException(status_code=401, detail="كلمة المرور الحالية غير صحيحة")
+    value = payload.new_password or ""
+    if (len(value) < 10 or not any(c.isupper() for c in value)
+            or not any(c.islower() for c in value) or not any(c.isdigit() for c in value)
+            or value.isalnum()):
+        raise HTTPException(
+            status_code=422,
+            detail="استخدم كلمة مرور من 10 خانات على الأقل تشمل حروفاً كبيرة وصغيرة ورقماً ورمزاً خاصاً",
+        )
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "password_hash": hash_password(value),
+            "must_change_password": False,
+            "updated_at": now_iso(),
+        }},
+    )
+    updated = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 0})
+    access = create_access_token(updated["id"], updated["email"], updated["role"])
+    refresh = create_refresh_token(updated["id"])
+    set_cookies(response, access, refresh)
+    return {"user": updated, "access_token": access}
+
 # ---------------- Users (Admin) ----------------
 @api_router.get("/users")
-async def list_users(user=Depends(get_current_user)):
+async def list_users(user=Depends(require_roles("admin"))):
     users = await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(500)
     return users
 
 @api_router.post("/users")
 async def create_user(payload: UserCreate, admin=Depends(require_roles("admin"))):
-    email = payload.email.lower()
-    if await db.users.find_one({"email": email}):
-        raise HTTPException(status_code=400, detail="Email is already in use")
-    doc = {
-        "id": new_id(),
-        "email": email,
-        "password_hash": hash_password(payload.password),
-        "name": payload.name,
-        "role": payload.role,
-        "title": payload.title or "",
-        "active": payload.active,
-        "created_at": now_iso(),
-    }
-    await db.users.insert_one(doc)
-    return {k: v for k, v in doc.items() if k not in ("password_hash", "_id")}
+    raise HTTPException(
+        status_code=410,
+        detail="إنشاء حسابات إضافية متوقف؛ الدخول محصور في القائمة التنفيذية المخولة",
+    )
 
 @api_router.patch("/users/{user_id}")
 async def update_user(user_id: str, payload: UserUpdate, admin=Depends(require_roles("admin"))):
@@ -470,46 +490,46 @@ async def dashboard(user=Depends(get_current_user)):
 # ---------------- Seed ----------------
 SEED_USERS = [
     {
-        "email": "admin@company.demo",
-        "password": "ExecAgent2026!",
-        "name": "Admin",
+        "email": "admin@arak.com",
+        "password_hash": "$2b$12$v0ad3vU4Z5pujJixD6f8E.jUxq1oiJOl97HAQS13tN58.7qXO60F2",
+        "name": "مدير النظام",
         "role": "admin",
-        "title": "System Administrator"
+        "title": "مدير النظام والمنصة"
     },
     {
-        "email": "ceo@company.demo",
-        "password": "ExecAgent2026!",
-        "name": "Chief Executive Officer",
+        "email": "ceo@arak.com",
+        "password_hash": "$2b$12$exaMxe4vWBoW1sRAZ58x7.Iwa5mAt.6WWp/mgXCTPghlom624tBny",
+        "name": "د. علي العتيبي",
         "role": "ceo",
-        "title": "Executive Leadership"
+        "title": "رئيس مجلس الإدارة والرئيس التنفيذي"
     },
     {
-        "email": "development@company.demo",
-        "password": "ExecAgent2026!",
-        "name": "VP DEVELOPMENT",
+        "email": "vp.dev@arak.com",
+        "password_hash": "$2b$12$z3vnjElm83qq6b0KPg3Qiu92QDIddfQmifzvIZJQrbs/Bcg/St1OC",
+        "name": "د. لؤي عبد الله أحمد",
         "role": "vp_development",
-        "title": "Development Portfolio"
+        "title": "نائب الرئيس التنفيذي للتنمية"
     },
     {
-        "email": "investment@company.demo",
-        "password": "ExecAgent2026!",
-        "name": "VP Investment",
+        "email": "vp.invest@arak.com",
+        "password_hash": "$2b$12$Z.rLpRG47q5heW.SjDveF.lDWjYv.9nIGQwSnLNssHWXF.vRYakgS",
+        "name": "نائب الرئيس التنفيذي للاستثمار",
         "role": "vp_investment",
-        "title": "Investment Portfolio"
+        "title": "نائب الرئيس التنفيذي للاستثمار"
     },
     {
-        "email": "manager@company.demo",
-        "password": "ExecAgent2026!",
-        "name": "Monitoring Manager",
+        "email": "dev.manager@arak.com",
+        "password_hash": "$2b$12$szXTbzymgb6fWmLaMk1eN.P3S0eoNLfLR9.LSIGZNmrOyY9aEZA6.",
+        "name": "مدير وحدة الأعمال",
         "role": "dev_manager",
-        "title": "Business Unit Management"
+        "title": "مدير العمليات والتنفيذ"
     },
     {
-        "email": "followup@company.demo",
-        "password": "ExecAgent2026!",
-        "name": "Follow-up Officer",
+        "email": "tracker@arak.com",
+        "password_hash": "$2b$12$N0vyiUGU1JnuyFyAHQLhLelMFOMCVwUeG4gCM1aJm1Di.cS3.pf2y",
+        "name": "المتابعة التنفيذية",
         "role": "tracker",
-        "title": "Executive Follow-up Office"
+        "title": "مسؤول المتابعة التنفيذية"
     }
 ]
 
@@ -602,25 +622,35 @@ async def seed_data():
     await db.projects.create_index("sector")
     await db.tasks.create_index("project_id")
 
-    # Reset demo users on every startup to keep project login credentials consistent
-    await db.users.delete_many({})
+    authorized_emails = [u["email"] for u in SEED_USERS]
+    await db.users.delete_many({"email": {"$nin": authorized_emails}})
 
     user_id_by_role = {}
+    test_password = os.getenv("EMBEDDED_TEST_PASSWORD")
 
     for u in SEED_USERS:
-        user_doc = {
-            "id": new_id(),
+        existing = await db.users.find_one({"email": u["email"]})
+        profile = {
             "email": u["email"],
-            "password_hash": hash_password(u["password"]),
             "name": u["name"],
             "role": u["role"],
             "title": u["title"],
             "active": True,
-            "created_at": now_iso(),
+            "updated_at": now_iso(),
         }
-
-        await db.users.insert_one(user_doc)
-        user_id_by_role[u["role"]] = user_doc["id"]
+        if existing:
+            await db.users.update_one({"id": existing["id"]}, {"$set": profile})
+            user_id_by_role[u["role"]] = existing["id"]
+        else:
+            user_doc = {
+                **profile,
+                "id": new_id(),
+                "password_hash": hash_password(test_password) if test_password else u["password_hash"],
+                "must_change_password": False if test_password else True,
+                "created_at": now_iso(),
+            }
+            await db.users.insert_one(user_doc)
+            user_id_by_role[u["role"]] = user_doc["id"]
 
     ceo_id = user_id_by_role.get("ceo")
 

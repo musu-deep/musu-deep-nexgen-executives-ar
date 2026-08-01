@@ -11,8 +11,6 @@
     "api/auth/login.js": { "maxDuration": 30 },
     "api/auth/me.js": { "maxDuration": 30 },
     "api/auth/change-password.js": { "maxDuration": 60 },
-    "api/auth/finance-login.js": { "maxDuration": 30 },
-    "api/auth/group-accounts.js": { "maxDuration": 30 },
     "api/auth/otp/request.js": { "maxDuration": 30 },
     "api/auth/otp/verify.js": { "maxDuration": 30 }
   },

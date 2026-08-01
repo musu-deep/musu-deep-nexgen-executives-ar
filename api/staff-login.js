@@ -1,8 +1,8 @@
 import {
-  authenticatePasswordDirectory,
   passwordDirectoryApiError,
   signPasswordDirectoryToken,
 } from "../lib/araak-password-directory.js";
+import { authenticateAuthorizedExecutive } from "../lib/authorized-access.js";
 
 function bodyOf(request) {
   if (request.body == null) return {};
@@ -17,7 +17,7 @@ export default async function handler(request, response) {
 
   try {
     const payload = bodyOf(request);
-    const user = await authenticatePasswordDirectory(payload.email, payload.password);
+    const user = await authenticateAuthorizedExecutive(payload.email, payload.password);
     if (!user) return response.status(401).json({ detail: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
     return response.status(200).json({ user, access_token: signPasswordDirectoryToken(user) });
   } catch (error) {
