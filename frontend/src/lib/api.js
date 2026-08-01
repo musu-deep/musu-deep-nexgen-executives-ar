@@ -101,12 +101,15 @@ export const SECTOR_LABELS = {
 };
 
 export const ROLE_LABELS = {
-  admin: "مدير المنصة التنفيذية",
+  admin: "مدير النظام والمنصة",
   ceo: "الرئيس التنفيذي",
   vp_development: "نائب الرئيس التنفيذي للتنمية",
-  vp_investment: "نائب الرئيس التنفيذي للاستثمار",
-  dev_manager: "مدير العمليات والتنفيذ",
-  tracker: "المتابعة التنفيذية",
+  national_executive: "المدير التنفيذي لشركة اراك الوطنية",
+  tracker: "الإشراف والمتابعة",
+  finance: "المدير المالي",
+  marketing_tenders: "مسؤول منصة التسويق والمناقصات",
+  procurement: "المشتريات",
+  tech_supervisor: "مشرف التقنية",
 };
 
 export const STATUS_LABELS = {

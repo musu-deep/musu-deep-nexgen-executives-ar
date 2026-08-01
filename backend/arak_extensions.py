@@ -31,7 +31,7 @@ class MeetingInput(BaseModel):
 
 @api_router.get("/meetings")
 async def list_meetings(user=Depends(get_current_user)):
-    q = {} if user["role"] in ("admin", "ceo", "tracker") else {"$or": [{"attendee_ids": user["id"]}, {"organizer_id": user["id"]}]}
+    q = {} if user["role"] in ("admin", "ceo", "tracker", "marketing_tenders") else {"$or": [{"attendee_ids": user["id"]}, {"organizer_id": user["id"]}]}
     items = await db.meetings.find(q, {"_id": 0}).sort("date", -1).to_list(500)
     return items
 
@@ -76,7 +76,7 @@ class MeetingRequestInput(BaseModel):
 @api_router.get("/meeting-requests")
 async def list_meeting_requests(user=Depends(get_current_user)):
     # CEO/admin/tracker see all, others see their own
-    q = {} if user["role"] in ("admin", "ceo", "tracker") else {"requester_id": user["id"]}
+    q = {} if user["role"] in ("admin", "ceo", "tracker", "marketing_tenders") else {"requester_id": user["id"]}
     items = await db.meeting_requests.find(q, {"_id": 0}).sort("created_at", -1).to_list(500)
     return items
 
@@ -139,7 +139,7 @@ async def list_documents(user=Depends(get_current_user), project_id: Optional[st
     q = {}
     if project_id: q["project_id"] = project_id
     if meeting_id: q["meeting_id"] = meeting_id
-    if user["role"] not in ("admin", "ceo", "tracker"):
+    if user["role"] not in ("admin", "ceo", "tracker", "marketing_tenders"):
         q["$or"] = [{"is_public": True}, {"uploaded_by": user["id"]}]
     items = await db.documents.find(q, {"_id": 0}).sort("created_at", -1).to_list(500)
     return items
@@ -581,7 +581,7 @@ async def calendar(user=Depends(get_current_user)):
     async for e in db.calendar_events.find({"user_id": user["id"]}, {"_id": 0}):
         events.append(e)
     # meetings (user is attendee, organizer, or sees all)
-    if user["role"] in ("admin", "ceo", "tracker"):
+    if user["role"] in ("admin", "ceo", "tracker", "marketing_tenders"):
         mq = {}
     else:
         mq = {"$or": [{"attendee_ids": user["id"]}, {"organizer_id": user["id"]}]}
@@ -880,7 +880,7 @@ async def chief_of_staff(user=Depends(get_current_user)):
     flt = role_sector_filter(user["role"]) or {}
     projects = await db.projects.find(flt, {"_id": 0}).to_list(500)
     tasks = await db.tasks.find(flt, {"_id": 0}).to_list(2000)
-    pending_requests = await db.meeting_requests.count_documents({"status": "pending"}) if user["role"] in ("admin", "ceo", "tracker") else await db.meeting_requests.count_documents({"status": "pending", "requester_id": user["id"]})
+    pending_requests = await db.meeting_requests.count_documents({"status": "pending"}) if user["role"] in ("admin", "ceo", "tracker", "marketing_tenders") else await db.meeting_requests.count_documents({"status": "pending", "requester_id": user["id"]})
     for p in projects:
         p["rag"] = calc_rag(p)
     critical = [p for p in projects if p.get("rag") == "red" or p.get("priority") == "critical"]

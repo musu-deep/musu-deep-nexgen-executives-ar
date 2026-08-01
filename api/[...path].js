@@ -5,21 +5,24 @@ const now = () => new Date().toISOString();
 const id = (prefix = "id") => `${prefix}_${crypto.randomUUID()}`;
 
 const USERS = [
-  { id: "usr_admin", email: "admin@arak.com", name: "مدير النظام", role: "admin", title: "مدير النظام والمنصة", active: true },
-  { id: "usr_ceo", email: "ceo@arak.com", name: "د. علي العتيبي", role: "ceo", title: "رئيس مجلس الإدارة والرئيس التنفيذي", active: true },
-  { id: "usr_dev", email: "vp.dev@arak.com", name: "د. لؤي عبد الله أحمد", role: "vp_development", title: "نائب الرئيس التنفيذي للتنمية", active: true },
-  { id: "usr_inv", email: "vp.invest@arak.com", name: "نائب الرئيس التنفيذي للاستثمار", role: "vp_investment", title: "نائب الرئيس التنفيذي للاستثمار", active: true },
-  { id: "usr_mgr", email: "dev.manager@arak.com", name: "مدير وحدة الأعمال", role: "dev_manager", title: "مدير العمليات والتنفيذ", active: true },
-  { id: "usr_track", email: "tracker@arak.com", name: "المتابعة التنفيذية", role: "tracker", title: "مسؤول المتابعة التنفيذية", active: true },
+  { id: "usr_admin", email: "louiabdalla1@gmail.com", name: "مدير النظام", role: "admin", title: "مدير النظام والمنصة", department: "إدارة المنصة", clearance: "executive_secret", capabilities: ["platform:admin", "platform:read_all", "tasks:assign", "tasks:distribute"], active: true },
+  { id: "usr_ceo", email: "dr.ali@araak.org", name: "د. علي العتيبي", role: "ceo", title: "الرئيس التنفيذي", department: "مكتب الرئيس التنفيذي", clearance: "executive_secret", capabilities: ["platform:read_all", "tasks:assign", "tasks:distribute"], active: true },
+  { id: "usr_dev", email: "sa.dc.1@araak.org", name: "د. لؤي عبد الله", role: "vp_development", title: "نائب الرئيس التنفيذي للتنمية", department: "الإدارة العليا", clearance: "confidential", capabilities: [], active: true },
+  { id: "usr_national", email: "a.alhusam@araak.net", name: "م. عبد الرحمن الحسام", role: "national_executive", title: "المدير التنفيذي لشركة اراك الوطنية", department: "اراك الوطنية", clearance: "confidential", capabilities: [], active: true },
+  { id: "usr_followup", email: "a.alotaibi@araak.org", name: "م. عبد الله العتيبي", role: "tracker", title: "الإشراف والمتابعة", department: "مكتب الرئيس التنفيذي", clearance: "confidential", capabilities: ["platform:read_all", "tasks:assign"], active: true },
+  { id: "usr_finance", email: "fm@araak.org", name: "أبو إياد", role: "finance", title: "المدير المالي", department: "الإدارة المالية", clearance: "financial_sensitive", capabilities: [], active: true },
+  { id: "usr_marketing", email: "scm@araak.org", name: "أ. محمود عوض", role: "marketing_tenders", title: "مسؤول منصة التسويق والمناقصات", department: "التسويق والمناقصات", clearance: "confidential", capabilities: ["platform:read_all", "tasks:assign", "tasks:distribute"], active: true },
+  { id: "usr_procurement", email: "contracting@araak.org", name: "محمد شكاك", role: "procurement", title: "المشتريات", department: "المشتريات والتعاقدات", clearance: "restricted", capabilities: [], active: true },
+  { id: "usr_tech", email: "sa.it.1@araak.org", name: "مشرف التقنية", role: "tech_supervisor", title: "مشرف التقنية", department: "تقنية المعلومات", clearance: "restricted", capabilities: [], active: true }
 ];
 
 const PROJECTS = [
   { id: "prj_1", name: "التحول الرقمي المؤسسي", description: "تطوير منظومة موحدة لإدارة العمليات والقرارات التنفيذية.", sector: "digital", progress: 72, status: "active", budget: 2400000, priority: "high", owner_id: "usr_dev", end_date: "2026-12-31", created_at: "2026-06-01T09:00:00Z" },
-  { id: "prj_2", name: "تطوير المحفظة الاستثمارية", description: "إعادة بناء نموذج تقييم الفرص ومراقبة العائد والمخاطر.", sector: "investment", progress: 44, status: "active", budget: 80000000, priority: "critical", owner_id: "usr_inv", end_date: "2026-11-15", created_at: "2026-06-03T09:00:00Z" },
+  { id: "prj_2", name: "تطوير المحفظة الاستثمارية", description: "إعادة بناء نموذج تقييم الفرص ومراقبة العائد والمخاطر.", sector: "investment", progress: 44, status: "active", budget: 80000000, priority: "critical", owner_id: "usr_finance", end_date: "2026-11-15", created_at: "2026-06-03T09:00:00Z" },
   { id: "prj_3", name: "أكاديمية القيادات المستقبلية", description: "برامج تنفيذية لبناء قدرات القيادات والكوادر المؤسسية.", sector: "academy", progress: 63, status: "active", budget: 1250000, priority: "high", owner_id: "usr_dev", end_date: "2027-02-28", created_at: "2026-06-06T09:00:00Z" },
   { id: "prj_4", name: "خطة النمو الاستراتيجي 2026–2030", description: "خارطة طريق للنمو والتوسع والشراكات والحوكمة.", sector: "development", progress: 28, status: "active", budget: 500000, priority: "critical", owner_id: "usr_ceo", end_date: "2026-10-30", created_at: "2026-06-08T09:00:00Z" },
   { id: "prj_5", name: "تحديث الخدمات المؤسسية", description: "رفع كفاءة الموارد البشرية والمالية والخدمات المشتركة.", sector: "corporate", progress: 55, status: "active", budget: 950000, priority: "medium", owner_id: "usr_dev", end_date: "2026-09-30", created_at: "2026-06-10T09:00:00Z" },
-  { id: "prj_6", name: "منظومة متابعة التنفيذ", description: "توحيد مؤشرات الإنجاز والتقارير ومسارات التصعيد.", sector: "arak_development", progress: 82, status: "active", budget: 700000, priority: "high", owner_id: "usr_mgr", end_date: "2026-08-31", created_at: "2026-06-12T09:00:00Z" },
+  { id: "prj_6", name: "منظومة متابعة التنفيذ", description: "توحيد مؤشرات الإنجاز والتقارير ومسارات التصعيد.", sector: "arak_development", progress: 82, status: "active", budget: 700000, priority: "high", owner_id: "usr_national", end_date: "2026-08-31", created_at: "2026-06-12T09:00:00Z" },
 ];
 
 function makeTasks() {
@@ -52,7 +55,7 @@ function createStore() {
     projects: structuredClone(PROJECTS),
     tasks: makeTasks(),
     meetings: [
-      { id: "meet_1", title: "اجتماع مراجعة الأداء التنفيذي", description: "مراجعة مؤشرات القطاعات والمشروعات الحرجة.", meeting_type: "periodic", date: new Date(Date.now() + 3 * 86400000).toISOString(), duration_minutes: 60, location: "قاعة الاجتماعات التنفيذية", meeting_link: "", attendee_ids: ["usr_ceo", "usr_dev", "usr_inv"], organizer_id: "usr_ceo", organizer_name: "الرئيس التنفيذي", status: "scheduled", created_at: now() },
+      { id: "meet_1", title: "اجتماع مراجعة الأداء التنفيذي", description: "مراجعة مؤشرات القطاعات والمشروعات الحرجة.", meeting_type: "periodic", date: new Date(Date.now() + 3 * 86400000).toISOString(), duration_minutes: 60, location: "قاعة الاجتماعات التنفيذية", meeting_link: "", attendee_ids: ["usr_ceo", "usr_dev", "usr_finance"], organizer_id: "usr_ceo", organizer_name: "الرئيس التنفيذي", status: "scheduled", created_at: now() },
     ],
     meetingRequests: [
       { id: "req_1", subject: "اعتماد التدخل في المشروع الاستراتيجي", description: "طلب اجتماع لحسم التبعيات والموارد المطلوبة.", proposed_date: new Date(Date.now() + 2 * 86400000).toISOString(), duration_minutes: 45, urgency: "high", status: "pending", requester_id: "usr_dev", requester_name: "نائب الرئيس التنفيذي للتنمية", created_at: now() },
@@ -124,6 +127,20 @@ function parseToken(token) {
 function currentUser(request) {
   const auth = request.headers.authorization || request.headers.Authorization || "";
   return parseToken(auth.startsWith("Bearer ") ? auth.slice(7) : "");
+}
+
+function isAdmin(user) {
+  return user?.role === "admin";
+}
+
+function canViewAllPlatform(user) {
+  return ["admin", "ceo", "marketing_tenders"].includes(user?.role)
+    || (user?.capabilities || []).includes("platform:read_all");
+}
+
+function canAssignTasks(user) {
+  return ["admin", "ceo", "tracker", "marketing_tenders"].includes(user?.role)
+    || (user?.capabilities || []).includes("tasks:assign");
 }
 
 function rag(project) {
@@ -257,20 +274,17 @@ export default async function handler(request, response) {
   if (!user) return send(response, 401, { detail: "Not authenticated" });
 
   if (route === "auth/me" && method === "GET") return send(response, 200, { user: safeUser(user) });
-  if (route === "theme" && method === "PUT") { store.theme = payload.active_theme || store.theme; return send(response, 200, { active_theme: store.theme }); }
+  if (route === "theme" && method === "PUT") { if (!isAdmin(user)) return send(response, 403, { detail: "إدارة مظهر المنصة متاحة لمدير النظام فقط." }); store.theme = payload.active_theme || store.theme; return send(response, 200, { active_theme: store.theme }); }
   if (route === "notification-settings" && method === "GET") return send(response, 200, store.notificationSettings);
-  if (route === "notification-settings" && method === "PUT") { store.notificationSettings = { ...store.notificationSettings, ...payload, events: { ...store.notificationSettings.events, ...(payload.events || {}) } }; return send(response, 200, store.notificationSettings); }
+  if (route === "notification-settings" && method === "PUT") { if (!isAdmin(user)) return send(response, 403, { detail: "إدارة إعدادات المنصة متاحة لمدير النظام فقط." }); store.notificationSettings = { ...store.notificationSettings, ...payload, events: { ...store.notificationSettings.events, ...(payload.events || {}) } }; return send(response, 200, store.notificationSettings); }
 
-  if (route === "users" && method === "GET") return send(response, 200, store.users.map(safeUser));
-  if (route === "users" && method === "POST") {
-    if (store.users.some((item) => item.email === String(payload.email || "").toLowerCase())) return send(response, 400, { detail: "البريد الإلكتروني مستخدم بالفعل" });
-    const created = { id: id("usr"), email: String(payload.email || "").toLowerCase(), name: payload.name || "مستخدم جديد", role: payload.role || "tracker", title: payload.title || "", active: payload.active !== false, created_at: now() };
-    store.users.push(created); return send(response, 201, safeUser(created));
+  if (route === "users" && method === "GET") {
+    if (!isAdmin(user)) return send(response, 403, { detail: "إدارة المستخدمين متاحة لمدير النظام فقط." });
+    return send(response, 200, store.users.map(safeUser));
   }
-  if (segments[0] === "users" && segments[1] && method === "PATCH") {
-    const item = store.users.find((entry) => entry.id === segments[1]);
-    if (!item) return send(response, 404, { detail: "User not found" });
-    Object.assign(item, payload); return send(response, 200, safeUser(item));
+  if ((route === "users" || segments[0] === "users") && ["POST", "PATCH", "DELETE"].includes(method)) {
+    if (!isAdmin(user)) return send(response, 403, { detail: "إدارة المستخدمين متاحة لمدير النظام فقط." });
+    return send(response, 410, { detail: "تتم إدارة الحسابات الرسمية من دليل الهوية المؤسسية المعتمد." });
   }
 
   if (route === "dashboard" && method === "GET") return send(response, 200, dashboard());
@@ -293,14 +307,17 @@ export default async function handler(request, response) {
     return send(response, 200, projectId ? store.tasks.filter((task) => task.project_id === projectId) : store.tasks);
   }
   if (route === "tasks" && method === "POST") {
-    const created = { ...payload, id: id("tsk"), created_by: user.id, created_at: now(), updated_at: now(), progress: Number(payload.progress || 0) };
+    if (payload.assignee_id && payload.assignee_id !== user.id && !canAssignTasks(user)) {
+      return send(response, 403, { detail: "لا تملك صلاحية توزيع المهام على أعضاء الفريق." });
+    }
+    const created = { ...payload, id: id("tsk"), assignee_id: payload.assignee_id || user.id, created_by: user.id, created_at: now(), updated_at: now(), progress: Number(payload.progress || 0) };
     store.tasks.unshift(created); return send(response, 201, created);
   }
   if (segments[0] === "tasks" && segments[1]) {
     const item = store.tasks.find((entry) => entry.id === segments[1]);
     if (!item) return send(response, 404, { detail: "Task not found" });
     if (segments[2] === "approve" && method === "POST") { Object.assign(item, { status: "completed", progress: 100, updated_at: now() }); return send(response, 200, item); }
-    if (method === "PATCH") { Object.assign(item, payload, { updated_at: now() }); return send(response, 200, item); }
+    if (method === "PATCH") { if (payload.assignee_id && payload.assignee_id !== item.assignee_id && !canAssignTasks(user)) return send(response, 403, { detail: "لا تملك صلاحية إعادة إسناد المهمة." }); Object.assign(item, payload, { updated_at: now() }); return send(response, 200, item); }
     if (method === "DELETE") { store.tasks = store.tasks.filter((entry) => entry.id !== item.id); return send(response, 200, { ok: true }); }
   }
 
@@ -349,7 +366,7 @@ export default async function handler(request, response) {
     if (method === "DELETE") { store.documents = store.documents.filter((entry) => entry.id !== item.id); return send(response, 200, { ok: true }); }
   }
 
-  if (route === "messages" && method === "GET") return send(response, 200, store.messages.filter((message) => message.sender_id === user.id || message.recipient_id === user.id || ["admin", "ceo", "tracker"].includes(user.role)));
+  if (route === "messages" && method === "GET") return send(response, 200, store.messages.filter((message) => message.sender_id === user.id || message.recipient_id === user.id || canViewAllPlatform(user) || user.role === "tracker"));
   if (route === "messages" && method === "POST") {
     const recipient = store.users.find((entry) => entry.id === payload.recipient_id);
     const created = { ...payload, id: id("msg"), sender_id: user.id, sender_name: user.name, recipient_name: recipient?.name || "", read: false, created_at: now() };
@@ -368,7 +385,7 @@ export default async function handler(request, response) {
     }
   }
 
-  if (route === "notifications" && method === "GET") return send(response, 200, store.notifications.filter((item) => item.user_id === user.id || ["admin", "ceo"].includes(user.role)));
+  if (route === "notifications" && method === "GET") return send(response, 200, store.notifications.filter((item) => item.user_id === user.id || canViewAllPlatform(user)));
   if (route === "notifications/read-all" && method === "POST") { store.notifications.forEach((item) => { if (item.user_id === user.id) item.read = true; }); return send(response, 200, { ok: true }); }
   if (segments[0] === "notifications" && segments[1] && segments[2] === "read" && method === "POST") { const item = store.notifications.find((entry) => entry.id === segments[1]); if (item) item.read = true; return send(response, 200, { ok: true }); }
 
