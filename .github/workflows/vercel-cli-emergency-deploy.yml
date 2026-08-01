@@ -1,4 +1,5 @@
 name: Vercel CLI Emergency Deploy
+# Triggered to publish the official nine-account authentication release.
 
 on:
   workflow_dispatch:
