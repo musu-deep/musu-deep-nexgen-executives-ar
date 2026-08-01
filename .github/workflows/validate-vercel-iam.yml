@@ -32,11 +32,12 @@ jobs:
           node --check api/users.js
           node --check api/auth/change-password.js
           node --check 'api/[...path].js'
+          node --check frontend/api/v4.js
           node --check scripts/test_vercel_iam.mjs
           node --check scripts/test_team_permissions.mjs
           python -m py_compile backend/server.py backend/arabic_server.py backend/embedded_server.py
           ! grep -R -E 'ExecAgent2026!|@company\.demo' .github api backend frontend lib scripts
-          node -e "JSON.parse(require('fs').readFileSync('vercel.json','utf8')); console.log('vercel.json valid')"
+          node -e "JSON.parse(require('fs').readFileSync('vercel.json','utf8')); JSON.parse(require('fs').readFileSync('frontend/vercel.json','utf8')); console.log('Vercel configs valid')"
 
       - name: Exercise credential-safe IAM routes
         run: node scripts/test_vercel_iam.mjs
