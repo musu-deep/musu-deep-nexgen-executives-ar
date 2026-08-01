@@ -1,6 +1,6 @@
 import { passwordDirectoryHealth } from "../lib/araak-password-directory.js";
 
-const RELEASE = "ceo-office-official-team-nine-2026-08-01-v4";
+const RELEASE = "ceo-office-official-team-nine-2026-08-01-v4-attachment-store";
 const DIRECTORY_VERSION = "official-team-nine-v4";
 
 export default async function handler(request, response) {

@@ -5,7 +5,7 @@ import {
 } from "../lib/araak-password-directory.js";
 import { authenticateAuthorizedExecutive } from "../lib/authorized-access.js";
 
-const RELEASE = "ceo-office-official-team-nine-2026-08-01-v4";
+const RELEASE = "ceo-office-official-team-nine-2026-08-01-v4-attachment-store";
 const DIRECTORY_VERSION = "official-team-nine-v4";
 
 function bodyOf(request) {

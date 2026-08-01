@@ -5,7 +5,7 @@ import changePasswordHandler from "../../api/auth/change-password.js";
 import usersHandler from "../../api/users.js";
 import businessHandler from "../../api/[...path].js";
 
-const RELEASE = "ceo-office-official-team-nine-2026-08-01-v4";
+const RELEASE = "ceo-office-official-team-nine-2026-08-01-v4-attachment-store";
 
 function requestedRoute(request) {
   const value = request?.query?.route;
@@ -23,7 +23,7 @@ function delegatedUrl(request, route) {
 }
 
 export default async function handler(request, response) {
-  response.setHeader("X-ARAAK-Gateway", "frontend-single-gateway-v4");
+  response.setHeader("X-ARAAK-Gateway", "frontend-single-gateway-v4-attachment-store");
   response.setHeader("X-ARAAK-Release", RELEASE);
 
   const route = requestedRoute(request);
