@@ -62,7 +62,7 @@ jobs:
               raise SystemExit(f"API did not start: {last!r}")
 
           def login():
-              body = json.dumps({"email":"ceo@arak.com","password":"EmbeddedCiOnly!2026"}).encode()
+              body = json.dumps({"email":"dr.ali@araak.org","password":"EmbeddedCiOnly!2026"}).encode()
               request = urllib.request.Request(base + "/api/auth/login", data=body, headers={"Content-Type":"application/json"})
               with urllib.request.urlopen(request, timeout=10) as response:
                   return json.loads(response.read().decode())["access_token"]
@@ -113,7 +113,7 @@ jobs:
           else:
               raise SystemExit("API did not restart")
 
-          body = json.dumps({"email":"ceo@arak.com","password":"EmbeddedCiOnly!2026"}).encode()
+          body = json.dumps({"email":"dr.ali@araak.org","password":"EmbeddedCiOnly!2026"}).encode()
           request = urllib.request.Request(base + "/api/auth/login", data=body, headers={"Content-Type":"application/json"})
           with urllib.request.urlopen(request, timeout=10) as response:
               token = json.loads(response.read().decode())["access_token"]
