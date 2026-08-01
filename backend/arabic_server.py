@@ -14,46 +14,25 @@ from typing import Any
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-try:
-    from .server import (
-        app as core_app,
-        calc_rag,
-        db,
-        get_current_user,
-        new_id,
-        now_iso,
-        role_sector_filter,
-    )
-    from .arak_extensions import (
-        ExecutiveBriefInput,
-        OrchestrateInput,
-        _call_gemini,
-        ai_agents as core_ai_agents,
-        ai_orchestrate as core_ai_orchestrate,
-        ai_workforce_status as core_workforce_status,
-        daily_executive_report as core_daily_report,
-        risk_radar as core_risk_radar,
-    )
-except ImportError:
-    from server import (
-        app as core_app,
-        calc_rag,
-        db,
-        get_current_user,
-        new_id,
-        now_iso,
-        role_sector_filter,
-    )
-    from arak_extensions import (
-        ExecutiveBriefInput,
-        OrchestrateInput,
-        _call_gemini,
-        ai_agents as core_ai_agents,
-        ai_orchestrate as core_ai_orchestrate,
-        ai_workforce_status as core_workforce_status,
-        daily_executive_report as core_daily_report,
-        risk_radar as core_risk_radar,
-    )
+from .server import (
+    app as core_app,
+    calc_rag,
+    db,
+    get_current_user,
+    new_id,
+    now_iso,
+    role_sector_filter,
+)
+from .arak_extensions import (
+    ExecutiveBriefInput,
+    OrchestrateInput,
+    _call_gemini,
+    ai_agents as core_ai_agents,
+    ai_orchestrate as core_ai_orchestrate,
+    ai_workforce_status as core_workforce_status,
+    daily_executive_report as core_daily_report,
+    risk_radar as core_risk_radar,
+)
 
 app = FastAPI(
     title="NEXGEN EXECUTIVES — النسخة العربية",
