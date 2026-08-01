@@ -46,4 +46,4 @@ jobs:
         run: |
           DEPLOYMENT_URL="$(cat deployment-url-clean.txt)"
           vercel curl /api/health --deployment "$DEPLOYMENT_URL" --token "$VERCEL_TOKEN" > health.json
-          node -e "const h=require('./health.json'); if(h.release!=='ceo-office-official-team-nine-2026-08-01-v3'||h.directory_version!=='official-team-nine-v3'||h.authorized_users!==9){console.error(h);process.exit(1)};console.log(h)"
+          node -e "const h=require('./health.json'); if(h.release!=='ceo-office-official-team-nine-2026-08-01-v4'||h.directory_version!=='official-team-nine-v4'||h.authorized_users!==9||h.directory?.status!=='ready'){console.error(h);process.exit(1)};console.log(h)"
