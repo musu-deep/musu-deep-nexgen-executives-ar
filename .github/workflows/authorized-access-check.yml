@@ -30,6 +30,11 @@ jobs:
           node --check api/staff-me.js
           node --check api/users.js
           node --check api/auth/change-password.js
+          node --check 'api/[...path].js'
+          node --check scripts/test_team_permissions.mjs
+
+      - name: Verify official team permissions
+        run: node scripts/test_team_permissions.mjs
 
       - name: Install frontend dependencies
         run: npm --prefix frontend install --legacy-peer-deps
