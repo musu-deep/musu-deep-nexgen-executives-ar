@@ -16,7 +16,7 @@ jobs:
       - name: Verify production release and optional private login
         env:
           BASE_URL: https://musu-deep-nexgen-executives-ar-4dip.vercel.app
-          EXPECTED_RELEASE: ceo-office-official-team-nine-2026-08-01-v3
+          EXPECTED_RELEASE: ceo-office-official-team-nine-2026-08-01-v4
           SMOKE_CEO_EMAIL: ${{ secrets.SMOKE_CEO_EMAIL }}
           SMOKE_CEO_PASSWORD: ${{ secrets.SMOKE_CEO_PASSWORD }}
         run: |
@@ -33,14 +33,15 @@ jobs:
               try:
                   request = urllib.request.Request(
                       base + "/api/health",
-                      headers={"User-Agent": "ARAAK-Vercel-Smoke/3.0"},
+                      headers={"User-Agent": "ARAAK-Vercel-Smoke/4.0"},
                   )
                   with urllib.request.urlopen(request, timeout=20) as response:
                       health = json.loads(response.read().decode("utf-8"))
-                  assert health.get("status") == "ready"
+                  assert health.get("status") == "ready", health
                   assert health.get("release") == expected_release, health
-                  assert health.get("directory_version") == "official-team-nine-v3", health
+                  assert health.get("directory_version") == "official-team-nine-v4", health
                   assert health.get("authorized_users") == 9, health
+                  assert health.get("directory", {}).get("status") == "ready", health
                   print("Production release ready on attempt", attempt + 1, health["release"])
                   break
               except Exception as exc:
@@ -62,20 +63,20 @@ jobs:
               data=payload,
               headers={
                   "Content-Type": "application/json",
-                  "User-Agent": "ARAAK-Vercel-Smoke/3.0",
+                  "User-Agent": "ARAAK-Vercel-Smoke/4.0",
               },
           )
           with urllib.request.urlopen(login_request, timeout=30) as response:
               login = json.loads(response.read().decode("utf-8"))
           token = login["access_token"]
           assert login["user"]["role"] == "ceo"
-          assert login.get("directory_version") == "official-team-nine-v3"
+          assert login.get("directory_version") == "official-team-nine-v4"
 
           me_request = urllib.request.Request(
               base + "/api/auth/me",
               headers={
                   "Authorization": "Bearer " + token,
-                  "User-Agent": "ARAAK-Vercel-Smoke/3.0",
+                  "User-Agent": "ARAAK-Vercel-Smoke/4.0",
               },
           )
           with urllib.request.urlopen(me_request, timeout=30) as response:
