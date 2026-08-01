@@ -1,0 +1,32 @@
+name: Official Team Backend Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate backend and team permissions
+        run: |
+          python -m pip install -r backend/requirements.txt --quiet
+          python -m py_compile backend/server.py backend/arabic_server.py backend/embedded_server.py
+          node --check lib/araak-password-directory.js
+          node --check lib/authorized-access.js
+          node --check 'api/[...path].js'
+          node --check scripts/test_team_permissions.mjs
+          node scripts/test_team_permissions.mjs

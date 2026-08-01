@@ -39,7 +39,7 @@ function expect(condition, message, context) {
 const login = await invoke(loginHandler, requestFor({
   method: "POST",
   url: "/api/auth/login",
-  body: { email: "admin@arak.com", password: temporaryPassword },
+  body: { email: "louiabdalla1@gmail.com", password: temporaryPassword },
 }));
 expect(login.status === 200, "temporary administrator login must succeed", login);
 expect(login.body?.user?.must_change_password === true, "first login must require password change", login);
@@ -52,7 +52,7 @@ expect(me.body?.user?.must_change_password === true, "session must preserve pass
 
 const users = await invoke(usersHandler, requestFor({ method: "GET", url: "/api/users", token }));
 expect(users.status === 200 && Array.isArray(users.body), "users list must be available", users);
-expect(users.body.length === 6, "directory must contain only the approved executive accounts", users);
+expect(users.body.length === 9, "directory must contain only the approved official team accounts", users);
 
 const newPassword = `TestOnly!${Date.now()}Aa1`;
 const changed = await invoke(changePasswordHandler, requestFor({
@@ -68,7 +68,7 @@ token = changed.body.access_token;
 const newLogin = await invoke(loginHandler, requestFor({
   method: "POST",
   url: "/api/auth/login",
-  body: { email: "admin@arak.com", password: newPassword },
+  body: { email: "louiabdalla1@gmail.com", password: newPassword },
 }));
 expect(newLogin.status === 200 && newLogin.body?.user?.must_change_password === false, "new password must authenticate", newLogin);
 
@@ -81,7 +81,7 @@ const rebuilt = await invoke(usersHandler, requestFor({
   token,
   body: { action: "rebuild" },
 }));
-expect(rebuilt.status === 200 && rebuilt.body?.users?.length === 6, "administrator must be able to rebuild the approved directory", rebuilt);
+expect(rebuilt.status === 200 && rebuilt.body?.users?.length === 9, "administrator must be able to rebuild the approved directory", rebuilt);
 expect(!Object.prototype.hasOwnProperty.call(rebuilt.body || {}, "temporary_password"), "API must not reveal temporary passwords", rebuilt);
 
 console.log("Authorized executive first-login checks passed.");

@@ -47,24 +47,35 @@ logger = logging.getLogger("nexgen-executives")
 
 
 # ---------------- Roles & Sectors ----------------
-# Roles: admin, ceo, vp_development, vp_investment, dev_manager, tracker
-# Sectors: development, investment, arak_development, academy, digital, corporate
+# Platform management is restricted to admin. Marketing & tenders has full read visibility and task distribution.
 DEV_SECTORS = ["development", "arak_development", "academy", "digital", "corporate"]
+GLOBAL_VIEW_ROLES = {"admin", "ceo", "tracker", "marketing_tenders"}
+TASK_ASSIGN_ROLES = {"admin", "ceo", "tracker", "marketing_tenders"}
+
 
 def role_sector_filter(role: str) -> Optional[dict]:
     """Return MongoDB filter for projects/tasks visibility. None means see-all."""
-    if role in ("admin", "ceo", "tracker"):
+    if role in GLOBAL_VIEW_ROLES:
         return None
     if role == "vp_development":
         return {"sector": {"$in": DEV_SECTORS}}
-    if role == "vp_investment":
-        return {"sector": "investment"}
-    if role == "dev_manager":
-        return {"sector": "arak_development"}
-    return {"_id": "__never__"}  # unknown -> nothing
+    if role == "national_executive":
+        return {"sector": {"$in": ["arak_development", "corporate"]}}
+    if role == "finance":
+        return {"sector": {"$in": ["investment", "corporate"]}}
+    if role == "procurement":
+        return {"sector": {"$in": ["arak_development", "corporate"]}}
+    if role == "tech_supervisor":
+        return {"sector": {"$in": ["digital", "corporate"]}}
+    return {"_id": "__never__"}
+
 
 def can_manage_users(role: str) -> bool:
     return role == "admin"
+
+
+def can_assign_tasks(role: str) -> bool:
+    return role in TASK_ASSIGN_ROLES
 
 # ---------------- Password & JWT helpers ----------------
 def hash_password(password: str) -> str:
@@ -136,7 +147,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     name: str
-    role: Literal["admin", "ceo", "vp_development", "vp_investment", "dev_manager", "tracker"]
+    role: Literal["admin", "ceo", "vp_development", "national_executive", "tracker", "finance", "marketing_tenders", "procurement", "tech_supervisor"]
     title: Optional[str] = ""
     active: bool = True
 
@@ -373,7 +384,11 @@ async def list_tasks(user=Depends(get_current_user), project_id: Optional[str] =
 
 @api_router.post("/tasks")
 async def create_task(payload: TaskInput, user=Depends(get_current_user)):
+    if payload.assignee_id and payload.assignee_id != user["id"] and not can_assign_tasks(user["role"]):
+        raise HTTPException(status_code=403, detail="لا تملك صلاحية توزيع المهام على أعضاء الفريق")
     doc = payload.model_dump()
+    if not doc.get("assignee_id"):
+        doc["assignee_id"] = user["id"]
     doc["id"] = new_id()
     doc["created_by"] = user["id"]
     doc["created_at"] = now_iso()
@@ -385,6 +400,10 @@ async def create_task(payload: TaskInput, user=Depends(get_current_user)):
 @api_router.patch("/tasks/{task_id}")
 async def update_task(task_id: str, payload: TaskUpdate, user=Depends(get_current_user)):
     updates = {k: v for k, v in payload.model_dump(exclude_none=True).items()}
+    if updates.get("assignee_id") and not can_assign_tasks(user["role"]):
+        current = await db.tasks.find_one({"id": task_id}, {"_id": 0, "assignee_id": 1})
+        if not current or updates["assignee_id"] != current.get("assignee_id"):
+            raise HTTPException(status_code=403, detail="لا تملك صلاحية إعادة إسناد المهمة")
     updates["updated_at"] = now_iso()
     await db.tasks.update_one({"id": task_id}, {"$set": updates})
     t = await db.tasks.find_one({"id": task_id}, {"_id": 0})
@@ -396,7 +415,7 @@ async def delete_task(task_id: str, user=Depends(get_current_user)):
     return {"ok": True}
 
 @api_router.post("/tasks/{task_id}/approve")
-async def approve_task(task_id: str, user=Depends(require_roles("admin", "ceo", "vp_development", "vp_investment"))):
+async def approve_task(task_id: str, user=Depends(require_roles("admin", "ceo", "vp_development", "national_executive", "finance"))):
     await db.tasks.update_one({"id": task_id}, {"$set": {"status": "completed", "approved_by": user["id"], "approved_at": now_iso(), "updated_at": now_iso()}})
     t = await db.tasks.find_one({"id": task_id}, {"_id": 0})
     return t
@@ -490,46 +509,119 @@ async def dashboard(user=Depends(get_current_user)):
 # ---------------- Seed ----------------
 SEED_USERS = [
     {
-        "email": "admin@arak.com",
-        "password_hash": "$2b$12$v0ad3vU4Z5pujJixD6f8E.jUxq1oiJOl97HAQS13tN58.7qXO60F2",
+        "id": "usr_admin",
+        "email": "louiabdalla1@gmail.com",
+        "password_hash": "$2b$12$uZGNAOTQsO7JlztHV5kx1.9IXNYDJ3JCFfPOE.b/ZI8nuNU9Ce5ua",
         "name": "مدير النظام",
         "role": "admin",
-        "title": "مدير النظام والمنصة"
+        "title": "مدير النظام والمنصة",
+        "department": "إدارة المنصة",
+        "clearance": "executive_secret",
+        "capabilities": [
+            "platform:admin",
+            "platform:read_all",
+            "tasks:assign",
+            "tasks:distribute"
+        ]
     },
     {
-        "email": "ceo@arak.com",
-        "password_hash": "$2b$12$exaMxe4vWBoW1sRAZ58x7.Iwa5mAt.6WWp/mgXCTPghlom624tBny",
+        "id": "usr_ceo",
+        "email": "dr.ali@araak.org",
+        "password_hash": "$2b$12$ZI5S2hxvJ6hA.vty5TdTf.ZSN9lElUx3XsFF6SUVAlZfOP0MpYdJy",
         "name": "د. علي العتيبي",
         "role": "ceo",
-        "title": "رئيس مجلس الإدارة والرئيس التنفيذي"
+        "title": "الرئيس التنفيذي",
+        "department": "مكتب الرئيس التنفيذي",
+        "clearance": "executive_secret",
+        "capabilities": [
+            "platform:read_all",
+            "tasks:assign",
+            "tasks:distribute"
+        ]
     },
     {
-        "email": "vp.dev@arak.com",
-        "password_hash": "$2b$12$z3vnjElm83qq6b0KPg3Qiu92QDIddfQmifzvIZJQrbs/Bcg/St1OC",
-        "name": "د. لؤي عبد الله أحمد",
+        "id": "usr_dev",
+        "email": "sa.dc.1@araak.org",
+        "password_hash": "$2b$12$xcib/aR3CMXrSmcajh3SjOIDn2k.LPeoUbS5cPmc.LHakAsGgS.NS",
+        "name": "د. لؤي عبد الله",
         "role": "vp_development",
-        "title": "نائب الرئيس التنفيذي للتنمية"
+        "title": "نائب الرئيس التنفيذي للتنمية",
+        "department": "الإدارة العليا",
+        "clearance": "confidential",
+        "capabilities": []
     },
     {
-        "email": "vp.invest@arak.com",
-        "password_hash": "$2b$12$Z.rLpRG47q5heW.SjDveF.lDWjYv.9nIGQwSnLNssHWXF.vRYakgS",
-        "name": "نائب الرئيس التنفيذي للاستثمار",
-        "role": "vp_investment",
-        "title": "نائب الرئيس التنفيذي للاستثمار"
+        "id": "usr_national",
+        "email": "a.alhusam@araak.net",
+        "password_hash": "$2b$12$erRsSru4CYNAvfYg0lIcOO/d6K1CPPstoogVgWVrLdmZ0W7bLvoYa",
+        "name": "م. عبد الرحمن الحسام",
+        "role": "national_executive",
+        "title": "المدير التنفيذي لشركة اراك الوطنية",
+        "department": "اراك الوطنية",
+        "clearance": "confidential",
+        "capabilities": []
     },
     {
-        "email": "dev.manager@arak.com",
-        "password_hash": "$2b$12$szXTbzymgb6fWmLaMk1eN.P3S0eoNLfLR9.LSIGZNmrOyY9aEZA6.",
-        "name": "مدير وحدة الأعمال",
-        "role": "dev_manager",
-        "title": "مدير العمليات والتنفيذ"
-    },
-    {
-        "email": "tracker@arak.com",
-        "password_hash": "$2b$12$N0vyiUGU1JnuyFyAHQLhLelMFOMCVwUeG4gCM1aJm1Di.cS3.pf2y",
-        "name": "المتابعة التنفيذية",
+        "id": "usr_followup",
+        "email": "a.alotaibi@araak.org",
+        "password_hash": "$2b$12$QQi/ejb.6cD6UiCe520TNu4K1ngFodwVv3hqbSi8U00kLSSOXt80e",
+        "name": "م. عبد الله العتيبي",
         "role": "tracker",
-        "title": "مسؤول المتابعة التنفيذية"
+        "title": "الإشراف والمتابعة",
+        "department": "مكتب الرئيس التنفيذي",
+        "clearance": "confidential",
+        "capabilities": [
+            "platform:read_all",
+            "tasks:assign"
+        ]
+    },
+    {
+        "id": "usr_finance",
+        "email": "fm@araak.org",
+        "password_hash": "$2b$12$tfXabYiHRg1W6qjVrpnMCeZtMbt9BoZ438YnJdssc2RF7TwAZ81Zu",
+        "name": "أبو إياد",
+        "role": "finance",
+        "title": "المدير المالي",
+        "department": "الإدارة المالية",
+        "clearance": "financial_sensitive",
+        "capabilities": []
+    },
+    {
+        "id": "usr_marketing",
+        "email": "scm@araak.org",
+        "password_hash": "$2b$12$FwlNlc0QfplckzqOCzRrJ.ZstjcD36RWLrvrvU0Dk7Wd6yquOuqHG",
+        "name": "أ. محمود عوض",
+        "role": "marketing_tenders",
+        "title": "مسؤول منصة التسويق والمناقصات",
+        "department": "التسويق والمناقصات",
+        "clearance": "confidential",
+        "capabilities": [
+            "platform:read_all",
+            "tasks:assign",
+            "tasks:distribute"
+        ]
+    },
+    {
+        "id": "usr_procurement",
+        "email": "contracting@araak.org",
+        "password_hash": "$2b$12$k0WPYcMZJRy.8Y4WI/U5ie5zaG1AVe2lWmwI9MHw8PJn6gYI55sXu",
+        "name": "محمد شكاك",
+        "role": "procurement",
+        "title": "المشتريات",
+        "department": "المشتريات والتعاقدات",
+        "clearance": "restricted",
+        "capabilities": []
+    },
+    {
+        "id": "usr_tech",
+        "email": "sa.it.1@araak.org",
+        "password_hash": "$2b$12$frHu2DusW4sV242VBhRt7.x0OgMJ3sxH1ZUMGjvhNsH9H3zpui5yO",
+        "name": "مشرف التقنية",
+        "role": "tech_supervisor",
+        "title": "مشرف التقنية",
+        "department": "تقنية المعلومات",
+        "clearance": "restricted",
+        "capabilities": []
     }
 ]
 
@@ -635,6 +727,9 @@ async def seed_data():
             "name": u["name"],
             "role": u["role"],
             "title": u["title"],
+            "department": u.get("department", ""),
+            "clearance": u.get("clearance", "restricted"),
+            "capabilities": u.get("capabilities", []),
             "active": True,
             "updated_at": now_iso(),
         }
@@ -644,7 +739,7 @@ async def seed_data():
         else:
             user_doc = {
                 **profile,
-                "id": new_id(),
+                "id": u["id"],
                 "password_hash": hash_password(test_password) if test_password else u["password_hash"],
                 "must_change_password": False if test_password else True,
                 "created_at": now_iso(),
@@ -657,11 +752,11 @@ async def seed_data():
     if await db.projects.count_documents({}) == 0:
         owner_map = {
             "academy": user_id_by_role.get("vp_development"),
-            "digital": user_id_by_role.get("vp_development"),
+            "digital": user_id_by_role.get("tech_supervisor") or user_id_by_role.get("vp_development"),
             "development": user_id_by_role.get("vp_development"),
             "corporate": user_id_by_role.get("vp_development"),
-            "arak_development": user_id_by_role.get("dev_manager"),
-            "investment": user_id_by_role.get("vp_investment"),
+            "arak_development": user_id_by_role.get("national_executive"),
+            "investment": user_id_by_role.get("finance"),
         }
 
         for p in SEED_PROJECTS:
