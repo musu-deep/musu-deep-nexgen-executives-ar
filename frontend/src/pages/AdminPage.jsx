@@ -3,8 +3,6 @@ import api, { ROLE_LABELS, formatApiError } from "../lib/api";
 import { KeyRound, RefreshCw, RotateCcw, Shield, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 
-const TEMP_PASSWORD = "Arak@2026";
-
 export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,21 +18,21 @@ export default function AdminPage() {
   useEffect(() => { load(); }, []);
 
   const rebuild = async () => {
-    if (!window.confirm("سيتم إعادة جميع المستخدمين إلى كلمة المرور المؤقتة وإجبارهم على تغييرها عند أول دخول. هل تريد المتابعة؟")) return;
+    if (!window.confirm("سيتم إعادة الحسابات المخولة إلى كلمات المرور المؤقتة الفردية وإجبار أصحابها على تغييرها عند أول دخول. هل تريد المتابعة؟")) return;
     setBusy(true);
     try {
       const response = await api.post("/users", { action: "rebuild" });
-      toast.success(`تمت إعادة بناء ${response.data?.users?.length || 0} مستخدماً`);
+      toast.success(`تمت إعادة تهيئة ${response.data?.users?.length || 0} حسابات مخولة`);
       await load();
     } catch (error) {
-      toast.error(formatApiError(error?.response?.data?.detail) || "تعذر إعادة بناء المستخدمين");
+      toast.error(formatApiError(error?.response?.data?.detail) || "تعذر إعادة تهيئة الحسابات");
     } finally { setBusy(false); }
   };
 
   const resetPassword = async (person) => {
     try {
       await api.patch("/users", { action: "reset_password", user_id: person.id });
-      toast.success(`أُعيدت كلمة مرور ${person.name} إلى المؤقتة`);
+      toast.success(`أُعيد حساب ${person.name} إلى كلمة المرور المؤقتة الفردية`);
       await load();
     } catch (error) { toast.error(formatApiError(error?.response?.data?.detail) || "تعذر إعادة ضبط كلمة المرور"); }
   };
@@ -53,16 +51,13 @@ export default function AdminPage() {
         <div>
           <div className="text-xs tracking-[0.12em] text-yellow-500/80">إدارة الحسابات المؤسسية</div>
           <h1 className="font-heading text-4xl font-black mt-2 flex items-center gap-3"><Shield className="text-yellow-500"/> إدارة المستخدمين</h1>
-          <p className="text-slate-500 text-sm mt-1">حسابات جاهزة، كلمة مرور مؤقتة، وتغيير إلزامي عند أول دخول.</p>
+          <p className="text-slate-500 text-sm mt-1">تظهر هنا الحسابات المخولة فقط، مع تغيير إلزامي لكلمة المرور عند أول دخول.</p>
         </div>
-        <button disabled={busy} onClick={rebuild} className="px-5 py-2.5 rounded-lg bg-yellow-500 text-black font-black flex items-center gap-2 disabled:opacity-50"><RotateCcw size={18}/>{busy ? "جارٍ إعادة البناء..." : "إعادة بناء جميع المستخدمين"}</button>
+        <button disabled={busy} onClick={rebuild} className="px-5 py-2.5 rounded-lg bg-yellow-500 text-black font-black flex items-center gap-2 disabled:opacity-50"><RotateCcw size={18}/>{busy ? "جارٍ إعادة التهيئة..." : "إعادة تهيئة الحسابات المخولة"}</button>
       </div>
 
       <div className="glass-card p-5 border-emerald-500/15 bg-emerald-500/[0.025]">
-        <div className="flex items-start justify-between gap-5 flex-wrap">
-          <div className="flex items-start gap-3"><KeyRound className="text-emerald-300 mt-0.5" size={20}/><div><div className="font-bold text-slate-100">كلمة المرور المؤقتة الموحدة</div><p className="text-sm text-slate-400 mt-1">يدخل كل مستخدم بها مرة واحدة، ثم ينقله النظام إجبارياً إلى شاشة اختيار كلمة مروره الخاصة.</p></div></div>
-          <code className="px-4 py-2 rounded-lg bg-black/30 border border-white/10 text-yellow-300 text-lg font-black" dir="ltr">{TEMP_PASSWORD}</code>
-        </div>
+        <div className="flex items-start gap-3"><KeyRound className="text-emerald-300 mt-0.5" size={20}/><div><div className="font-bold text-slate-100">كلمات مرور مؤقتة فردية</div><p className="text-sm text-slate-400 mt-1">لكل حساب كلمة مؤقتة مختلفة تُسلّم لصاحبها بصورة خاصة، ولا تُعرض داخل المنصة أو مستودع الشفرة. يُطلب تغييرها فور أول دخول.</p></div></div>
       </div>
 
       <div className="glass-card p-2 overflow-x-auto">
@@ -74,7 +69,7 @@ export default function AdminPage() {
               <td className="py-3 px-4 text-slate-400 text-xs text-left" dir="ltr">{person.email}</td>
               <td className="py-3 px-4"><select value={person.role} onChange={(event) => updateUser(person, { role: event.target.value })} className="px-3 py-1.5 rounded bg-[#0a0d14] border border-white/10 text-xs">{Object.entries(ROLE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></td>
               <td className="py-3 px-4"><span className={`text-[10px] px-2 py-1 rounded ${person.must_change_password ? "bg-amber-500/15 text-amber-300" : "bg-emerald-500/15 text-emerald-300"}`}>{person.must_change_password ? "يجب تغييرها عند الدخول" : "تم تغييرها"}</span></td>
-              <td className="py-3 px-4"><div className="flex items-center gap-1"><button onClick={() => resetPassword(person)} title="إعادة كلمة المرور المؤقتة" className="p-2 rounded text-yellow-300 hover:bg-yellow-500/10"><RefreshCw size={14}/></button><button onClick={() => updateUser(person, { active: !person.active })} title={person.active ? "تعطيل الحساب" : "تفعيل الحساب"} className={`p-2 rounded ${person.active ? "text-rose-300 hover:bg-rose-500/10" : "text-emerald-300 hover:bg-emerald-500/10"}`}>{person.active ? <UserX size={14}/> : <UserCheck size={14}/>}</button></div></td>
+              <td className="py-3 px-4"><div className="flex items-center gap-1"><button onClick={() => resetPassword(person)} title="إعادة كلمة المرور المؤقتة الفردية" className="p-2 rounded text-yellow-300 hover:bg-yellow-500/10"><RefreshCw size={14}/></button><button onClick={() => updateUser(person, { active: !person.active })} title={person.active ? "تعطيل الحساب" : "تفعيل الحساب"} className={`p-2 rounded ${person.active ? "text-rose-300 hover:bg-rose-500/10" : "text-emerald-300 hover:bg-emerald-500/10"}`}>{person.active ? <UserX size={14}/> : <UserCheck size={14}/>}</button></div></td>
             </tr>)}</tbody>
           </table>
         )}
