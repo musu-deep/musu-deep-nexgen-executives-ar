@@ -6,11 +6,12 @@ const COMMON_MODULES = new Set([
 ]);
 
 const AREA_MODULES = {
-  human_resources: ["human_resources", "team"],
+  human_resources: ["human_resources", "recruitment", "team"],
   secretariat: ["executive_secretariat", "documents", "calendar"],
   legal: ["legal_affairs", "documents"],
   quality: ["quality_control"],
-  development: [], investment: [], operations: [], digital: [], general: [],
+  development: ["human_resources", "recruitment"],
+  investment: [], operations: [], digital: [], general: [],
 };
 
 const FULL_ONLY_MODULES = new Set([
@@ -24,7 +25,9 @@ const PATH_MODULES = [
   [/^\/tasks(?:\/.*)?$/, "tasks"], [/^\/meetings(?:\/.*)?$/, "meetings"],
   [/^\/meeting-requests(?:\/.*)?$/, "meeting_requests"], [/^\/calendar(?:\/.*)?$/, "calendar"],
   [/^\/messages(?:\/.*)?$/, "messages"], [/^\/notifications(?:\/.*)?$/, "notifications"],
-  [/^\/settings(?:\/.*)?$/, "settings"], [/^\/(?:human-resources|hr)(?:\/.*)?$/, "human_resources"],
+  [/^\/settings(?:\/.*)?$/, "settings"],
+  [/^\/(?:human-resources|hr)\/recruitment(?:\/.*)?$/, "recruitment"],
+  [/^\/(?:human-resources|hr)(?:\/.*)?$/, "human_resources"],
   [/^\/team(?:\/.*)?$/, "team"], [/^\/executive-secretariat(?:\/.*)?$/, "executive_secretariat"],
   [/^\/legal-affairs(?:\/.*)?$/, "legal_affairs"], [/^\/quality-control(?:\/.*)?$/, "quality_control"],
   [/^\/documents(?:\/.*)?$/, "documents"], [/^\/daily-report(?:\/.*)?$/, "daily_report"],
@@ -72,6 +75,9 @@ export function allowedModulesForUser(user) {
   if (user?.role === "admin") {
     allowed.add("admin");
     allowed.add("access_control");
+    allowed.add("human_resources");
+    allowed.add("recruitment");
+    allowed.add("team");
   }
   return allowed;
 }
