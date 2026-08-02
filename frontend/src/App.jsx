@@ -14,7 +14,7 @@ import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TasksPage from "./pages/TasksPage";
 import ReportsPage from "./pages/ReportsPage";
 import TeamPage from "./pages/TeamPage";
-import HumanResourcesPage from "./pages/HumanResourcesPage";
+import HumanResourcesWorkspacePage from "./pages/HumanResourcesWorkspacePage";
 import AdminPage from "./pages/AdminPage";
 import MeetingsPage from "./pages/MeetingsPage";
 import MeetingRequestsPage from "./pages/MeetingRequestsPage";
@@ -92,8 +92,10 @@ function AppRoutes() {
           <Route path="/presidential-advisor" element={<AdvisorWorkspacePage />} />
           <Route path="/opportunity-intelligence" element={<OpportunityIntelligencePage />} />
           <Route path="/pricing-intelligence" element={<PricingPortalPage />} />
-          <Route path="/human-resources" element={<HumanResourcesPage />} />
-          <Route path="/hr" element={<HumanResourcesPage />} />
+          <Route path="/human-resources" element={<HumanResourcesWorkspacePage />} />
+          <Route path="/human-resources/recruitment" element={<HumanResourcesWorkspacePage />} />
+          <Route path="/hr" element={<HumanResourcesWorkspacePage />} />
+          <Route path="/hr/recruitment" element={<HumanResourcesWorkspacePage />} />
           <Route path="/quality-control" element={<QualityControlPage />} />
           <Route path="/meetings" element={<MeetingsPage />} />
           <Route path="/meeting-requests" element={<MeetingRequestsPage />} />
