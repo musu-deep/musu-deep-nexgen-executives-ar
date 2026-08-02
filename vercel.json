@@ -8,6 +8,7 @@
     "api/[...path].js": { "maxDuration": 60 },
     "api/users.js": { "maxDuration": 60 },
     "api/marketing.js": { "maxDuration": 60 },
+    "api/recruitment.js": { "maxDuration": 60 },
     "api/auth/login.js": { "maxDuration": 30 },
     "api/auth/me.js": { "maxDuration": 30 },
     "api/auth/change-password.js": { "maxDuration": 60 },
@@ -15,6 +16,7 @@
     "api/auth/otp/verify.js": { "maxDuration": 30 }
   },
   "rewrites": [
+    { "source": "/jobs/:jobId", "destination": "/api/recruitment?public_job_id=:jobId&format=html" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
