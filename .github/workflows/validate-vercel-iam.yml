@@ -24,13 +24,14 @@ jobs:
       - name: Validate sanitized authentication sources
         run: |
           node --check lib/araak-password-directory.js
-          node --check lib/araak-password-directory-v5.js
+          node --check lib/araak-password-directory-v7.js
           node --check lib/authorized-access.js
           node --check lib/araak-iam.js
           node --check lib/araak-iam-http.js
           node --check api/staff-login.js
           node --check api/staff-me.js
           node --check api/users.js
+          node --check api/marketing.js
           node --check api/auth/change-password.js
           node --check 'api/[...path].js'
           node --check frontend/api/v4.js
@@ -47,7 +48,7 @@ jobs:
       - name: Verify official team permissions
         run: node scripts/test_team_permissions.mjs
 
-      - name: Verify Odoo attachment directory
+      - name: Verify directory and marketing isolation
         run: node scripts/test_odoo_attachment_directory.mjs
 
       - name: Build frontend
